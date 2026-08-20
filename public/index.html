@@ -36,17 +36,18 @@
   <p class="sub">Conectado a tu cuenta. Se actualiza solo, o apretá "Actualizar" para forzar.</p>
 
   <div class="toolbar">
-    <button id="btnConectar">Conectar cuenta de ML.</button>
+    <button id="btnConectar">Conectar cuenta de ML</button>
     <button id="btnSync" class="secondary">Actualizar ahora</button>
   </div>
   <div id="estado"></div>
   <div id="lista"></div>
 
 <script>
-  // Reemplazar con tus datos reales del proyecto Supabase de este sistema
-  const SUPABASE_URL = 'TU_SUPABASE_URL';
+  // Reemplazado con los datos reales del proyecto Supabase de este sistema
+  const SUPABASE_URL = 'https://uafheldlrloqypeelnyx.supabase.co';
   const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const estadoEl = document.getElementById('estado');
   const listaEl = document.getElementById('lista');
 
@@ -81,7 +82,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 
   async function cargarPedidos() {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('pedidos')
       .select('*')
       .order('fecha_creacion', { ascending: false });
@@ -101,7 +102,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
       `;
       div.querySelector('input').onchange = async (e) => {
-        await supabase.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
+        await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
       };
       listaEl.appendChild(div);
     }
