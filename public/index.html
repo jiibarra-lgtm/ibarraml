@@ -140,6 +140,21 @@
   .config-row .campo input{width:120px;}
   .recientes-item{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;}
   .recientes-item:last-child{border-bottom:none;}
+
+  /* --- Bienvenida (home tipo Cotizador) --- */
+  .bienvenida-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px;}
+  .bienvenida-eyebrow{font-size:11px; font-weight:700; color:var(--indigo); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;}
+  .bienvenida-titulo{font-size:24px; font-weight:700; margin-bottom:4px;}
+  .bienvenida-sub{color:var(--muted); font-size:13px;}
+  .bienvenida-fecha{color:var(--muted); font-size:13px; white-space:nowrap; padding-top:4px;}
+  .grupo-accesos{margin-bottom:22px;}
+  .grupo-accesos .titulo-grupo{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; margin-bottom:10px;}
+  .grid-accesos{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px;}
+  .acceso-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; cursor:pointer; transition:border-color .15s, transform .1s;}
+  .acceso-card:hover{border-color:var(--indigo); transform:translateY(-1px);}
+  .acceso-icon{width:38px; height:38px; border-radius:9px; background:var(--indigo-l); color:var(--indigo); display:flex; align-items:center; justify-content:center; font-size:17px; margin-bottom:10px;}
+  .acceso-nombre{font-size:13.5px; font-weight:600; margin-bottom:3px;}
+  .acceso-desc{font-size:11.5px; color:var(--muted); line-height:1.4;}
 </style>
 </head>
 <body>
@@ -196,7 +211,69 @@
 
     <!-- INICIO -->
     <div class="pagina activa" id="pagina-inicio">
-      <div class="stats" id="statsInicio"></div>
+      <div class="bienvenida-top">
+        <div>
+          <div class="bienvenida-eyebrow">Bienvenido</div>
+          <div class="bienvenida-titulo">¿Qué querés ver hoy?</div>
+          <div class="bienvenida-sub">Elegí una sección para empezar.</div>
+        </div>
+        <div class="bienvenida-fecha" id="fechaHoy"></div>
+      </div>
+
+      <div class="grupo-accesos">
+        <div class="titulo-grupo">Pedidos</div>
+        <div class="grid-accesos">
+          <div class="acceso-card" data-ir="pedidos">
+            <div class="acceso-icon">▤</div>
+            <div class="acceso-nombre">Todos los pedidos</div>
+            <div class="acceso-desc">Lista completa, con fotos y precio unitario</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grupo-accesos">
+        <div class="titulo-grupo">Reportes</div>
+        <div class="grid-accesos">
+          <div class="acceso-card" data-ir="graficos">
+            <div class="acceso-icon">◔</div>
+            <div class="acceso-nombre">Gráficos</div>
+            <div class="acceso-desc">Gasto por categoría y por mes</div>
+          </div>
+          <div class="acceso-card" data-ir="productos">
+            <div class="acceso-icon">▥</div>
+            <div class="acceso-nombre">Top productos</div>
+            <div class="acceso-desc">Lo que más comprás, agrupado</div>
+          </div>
+          <div class="acceso-card" data-ir="pagos">
+            <div class="acceso-icon">$</div>
+            <div class="acceso-nombre">Método de pago</div>
+            <div class="acceso-desc">Gasto discriminado por medio de pago</div>
+          </div>
+          <div class="acceso-card" data-ir="rubros">
+            <div class="acceso-icon">▦</div>
+            <div class="acceso-nombre">Rubros</div>
+            <div class="acceso-desc">Gasto por rubro y deducibilidad</div>
+          </div>
+          <div class="acceso-card" data-ir="conciliacion">
+            <div class="acceso-icon">✓</div>
+            <div class="acceso-nombre">Conciliación</div>
+            <div class="acceso-desc">Qué falta cargar en el Cotizador</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grupo-accesos">
+        <div class="titulo-grupo">Sistema</div>
+        <div class="grid-accesos">
+          <div class="acceso-card" data-ir="config">
+            <div class="acceso-icon">⚙</div>
+            <div class="acceso-nombre">Configuración</div>
+            <div class="acceso-desc">Alertas y exportación de datos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats" id="statsInicio" style="margin-top:6px;"></div>
       <div class="alertas" id="alertasInicio"></div>
       <div class="panel">
         <h3>Últimos pedidos</h3>
@@ -314,18 +391,20 @@
 
   /* ---------- NAV SIDEBAR ---------- */
   const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', config:'Configuración' };
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.onclick = () => {
-      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      document.querySelectorAll('.pagina').forEach(p => p.classList.remove('activa'));
-      const pag = item.dataset.pagina;
-      document.getElementById('pagina-' + pag).classList.add('activa');
-      document.getElementById('tituloPagina').textContent = nombresPagina[pag];
-      if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
-      if (pag === 'inicio') renderInicio();
-    };
-  });
+  function irAPagina(pag) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
+    document.querySelectorAll('.pagina').forEach(p => p.classList.remove('activa'));
+    document.getElementById('pagina-' + pag).classList.add('activa');
+    document.getElementById('tituloPagina').textContent = nombresPagina[pag];
+    if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
+    if (pag === 'inicio') renderInicio();
+  }
+  document.querySelectorAll('.nav-item').forEach(item => { item.onclick = () => irAPagina(item.dataset.pagina); });
+  document.querySelectorAll('.acceso-card').forEach(card => { card.onclick = () => irAPagina(card.dataset.ir); });
+
+  const fechaEl = document.getElementById('fechaHoy');
+  if (fechaEl) fechaEl.textContent = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^\w/, c => c.toUpperCase());
 
   /* ---------- ESTADO GLOBAL ---------- */
   let TODOS = [];
