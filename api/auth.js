@@ -1,11 +1,6 @@
 // POST /api/auth  { password: "..." }
-<<<<<<< HEAD
-// Comparda contra APP_PASSWORD_HASH (bcrypt) guardado en variables de entorno
-// de Vercel. Si coincide, devuelve un token simple firmado (HMAC) con
-=======
 // Compara contra APP_PASSWORD_HASH (bcrypt) guardado en variables de entorno
-// de Vercel. Si coigncide, devuelve un token simple firmado (HMAC) con
->>>>>>> b5673ec960cbce80639998d22bf937a40be3442c
+// de Vercel. Si coincide, devuelve un token simple firmado (HMAC) con
 // expiración de 30 días, que el frontend guarda en localStorage.
 //
 // Variables de entorno necesarias:
