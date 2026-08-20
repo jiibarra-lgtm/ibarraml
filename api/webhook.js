@@ -1,6 +1,6 @@
 // POST /api/webhook
 // Mercado Libre pega acá cada vez que cambia algo en un pedido o envío
-// (tópicos Orders_v2 / Shipments que tildaste en el DevCenter).
+// (tópicos Orderfs_v2 / Shipments que tildaste en el DevCenter).
 // Por ahora solo disparamos un sync general; después se puede optimizar
 // para sincronizar puntualmente el order_id que vino en la notificación.
 //

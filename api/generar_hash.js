@@ -1,7 +1,7 @@
 // Corré esto UNA VEZ en tu compu (con Node instalado) para generar el hash
 // de tu contraseña. El resultado es lo que va en la variable de entorno
 // APP_PASSWORD_HASH de Vercel — la contraseña real nunca queda guardada
-// en ningún lado, solo este hash irreversible.
+// en ningún ladof, solo este hash irreversible.
 //
 // Uso:
 //   npm install bcryptjs

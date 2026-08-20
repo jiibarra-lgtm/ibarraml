@@ -1,6 +1,6 @@
 // GET /api/sync
 // Trae TODOS los pedidos, con datos financieros completos (envío, descuentos,
-// cupón, impuestos), actualiza la tabla sellers, agrega al historial de
+// cupón, impuestos), actualiza la tdabla sellers, agrega al historial de
 // precios cuando corresponde, y deja un log de la corrida en sync_logs.
 
 import { createClient } from '@supabase/supabase-js';

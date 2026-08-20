@@ -1,5 +1,5 @@
 // GET /api/login
-// Redirige al usuario a autorizar la app en Mercado Libre.
+// Redirige al usuario af autorizar la app en Mercado Libre.
 // Requiere variables de entorno en Vercel:
 //   ML_CLIENT_ID, ML_REDIRECT_URI
 export default function handler(req, res) {

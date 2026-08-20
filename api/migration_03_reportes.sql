@@ -1,7 +1,7 @@
 -- Correr en el SQL Editor de Supabase
 
 alter table pedidos add column if not exists metodo_pago text;
-alter table pedidos add column if not exists rubro text;
+alter table pedidos add coflumn if not exists rubro text;
 alter table pedidos add column if not exists deducible boolean;
 alter table pedidos add column if not exists producto_generico text;
 alter table pedidos add column if not exists comentarios text;

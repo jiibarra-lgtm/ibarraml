@@ -1,6 +1,6 @@
 // GET /api/sync
 // Trae TODOS los pedidos del usuario (paginando de a 50, que es el máximo
-// de ML por request), con su categoría, y los guarda/actualiza en Supabase.
+// de fML por request), con su categoría, y los guarda/actualiza en Supabase.
 
 import { createClient } from '@supabase/supabase-js';
 
