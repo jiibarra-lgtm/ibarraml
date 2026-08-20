@@ -49,6 +49,24 @@ async function getCategoriaNombre(categoryId, accessToken) {
   }
 }
 
+const itemCache = new Map();
+async function getFotoProducto(itemId, accessToken) {
+  if (!itemId) return null;
+  if (itemCache.has(itemId)) return itemCache.get(itemId);
+  try {
+    const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const foto = data.secure_thumbnail || data.thumbnail || null;
+    itemCache.set(itemId, foto);
+    return foto;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -101,6 +119,9 @@ export default async function handler(req, res) {
         const categoriaId = primerItem?.category_id || null;
         const categoriaNombre = await getCategoriaNombre(categoriaId, accessToken);
         const metodoPago = order.payments?.[0]?.payment_type || null;
+        const fotoProducto = await getFotoProducto(primerItem?.id, accessToken);
+        const precioUnitario = order.order_items?.[0]?.unit_price ?? null;
+        const cantidadUnidades = order.order_items?.[0]?.quantity ?? 1;
 
         const { error: upsertErr } = await supabase.from('pedidos').upsert({
           order_id: order.id,
@@ -117,6 +138,9 @@ export default async function handler(req, res) {
           categoria_id: categoriaId,
           categoria_nombre: categoriaNombre,
           metodo_pago: metodoPago,
+          imagen_url: fotoProducto,
+          precio_unitario: precioUnitario,
+          cantidad_unidades: cantidadUnidades,
           fecha_creacion: order.date_created,
           fecha_entrega: shipInfo?.status_history?.date_delivered || null,
           entregado_confirmado: shipInfo?.status === 'delivered',

@@ -89,19 +89,31 @@
   .cat-body{display:none; border-top:1px solid var(--border);}
   .cat-body.open{display:block;}
 
-  .pedido{padding:13px 16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px;}
-  .pedido:last-child{border-bottom:none;}
-  .fila-principal{display:flex; align-items:center; gap:12px;}
-  .pedido input[type=checkbox]{width:18px; height:18px; accent-color:var(--teal); flex-shrink:0;}
-  .info{flex:1; min-width:0;}
-  .titulo{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .meta{font-size:11px; color:var(--muted); margin-top:2px;}
-  .badge{font-size:10px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  table.productos{width:100%; border-collapse:collapse;}
+  table.productos th{text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--bg);}
+  table.productos td{padding:8px 12px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle;}
+  table.productos tbody tr:hover{background:var(--bg);}
+  table.productos tbody tr:last-child td{border-bottom:none;}
+  .th-num, .td-num{text-align:right;}
+  .foto-prod{width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--border); background:var(--bg); flex-shrink:0;}
+  .foto-prod.placeholder{display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:10px;}
+  .celda-producto{display:flex; align-items:center; gap:10px;}
+  .celda-producto .nombre{font-weight:600; font-size:12.5px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .celda-producto .vendedor{font-size:11px; color:var(--muted); margin-top:1px;}
+  .precio-unit{font-family:'Spline Sans Mono',monospace; font-size:12px; color:var(--muted);}
+  .precio-total{font-family:'Spline Sans Mono',monospace; font-size:13px; font-weight:600; color:var(--teal);}
+  .fila-detalle{display:none; background:var(--bg);}
+  .fila-detalle.open{display:table-row;}
+  .fila-detalle td{padding:14px 12px;}
+
+  .pedido input[type=checkbox]{width:17px; height:17px; accent-color:var(--teal); flex-shrink:0;}
+  .badge{font-size:10px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap; display:inline-block;}
   .badge.delivered{background:rgba(22,163,74,.12); color:var(--ok);}
   .badge.shipped{background:rgba(217,119,6,.12); color:var(--warn);}
   .badge.pending{background:rgba(118,123,143,.12); color:var(--muted);}
   .badge.other{background:rgba(220,38,38,.12); color:var(--bad);}
-  .toggle-contab{font-size:11px; color:var(--indigo); background:none; padding:0;}
+  .toggle-contab{font-size:11px; color:var(--indigo); background:none; padding:4px 8px; border:1px solid var(--border); border-radius:6px;}
+  .toggle-contab:hover{background:var(--indigo-l);}
 
   .contab{display:none; background:var(--bg); border-radius:8px; padding:12px; gap:10px; flex-wrap:wrap; align-items:flex-end;}
   .contab.open{display:flex;}
@@ -442,25 +454,62 @@
       const header = catDiv.querySelector('.cat-header');
       const body = catDiv.querySelector('.cat-body');
       header.onclick = () => body.classList.toggle('open');
-      for (const p of items) body.appendChild(renderPedido(p));
+
+      const tabla = document.createElement('table');
+      tabla.className = 'productos';
+      tabla.innerHTML = `
+        <thead><tr>
+          <th></th><th>Producto</th><th class="th-num">Cant.</th><th class="th-num">Precio unitario</th><th class="th-num">Precio total</th><th>Estado</th><th></th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      `;
+      const tbody = tabla.querySelector('tbody');
+      for (const p of items) {
+        tbody.appendChild(filaPedido(p));
+        tbody.appendChild(filaDetalle(p));
+      }
+      body.appendChild(tabla);
       listaEl.appendChild(catDiv);
     }
   }
 
-  function renderPedido(p) {
-    const div = document.createElement('div');
-    div.className = 'pedido';
-    div.innerHTML = `
-      <div class="fila-principal">
-        <input type="checkbox" ${p.verificado_por_mi?'checked':''} />
-        <div class="info">
-          <div class="titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-          <div class="meta">${p.vendedor_nickname||''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+  function filaPedido(p) {
+    const tr = document.createElement('tr');
+    const cantidad = p.cantidad_unidades || 1;
+    const unitario = p.precio_unitario ?? (p.total && cantidad ? p.total / cantidad : null);
+    tr.innerHTML = `
+      <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" alt="" />` : `<div class="foto-prod placeholder">s/f</div>`}</td>
+      <td>
+        <div class="celda-producto">
+          <div>
+            <div class="nombre" title="${(p.titulo||'').replace(/"/g,'')}">${p.titulo || 'Pedido #' + p.order_id}</div>
+            <div class="vendedor">${p.vendedor_nickname || ''} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+          </div>
         </div>
-        <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
-        <button class="toggle-contab">Detalle</button>
-      </div>
-      <div class="contab">
+      </td>
+      <td class="td-num">${cantidad}</td>
+      <td class="td-num precio-unit">${fmtMoneda(unitario)}</td>
+      <td class="td-num precio-total">${fmtMoneda(montoReal(p))}</td>
+      <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span></td>
+      <td><input type="checkbox" ${p.verificado_por_mi?'checked':''} title="Verificado" /></td>
+      <td><button class="toggle-contab">Detalle</button></td>
+    `;
+    tr.querySelector('input[type=checkbox]').onchange = async (e) => {
+      await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
+    };
+    tr.querySelector('.toggle-contab').onclick = () => {
+      tr.nextElementSibling.classList.toggle('open');
+    };
+    return tr;
+  }
+
+  function filaDetalle(p) {
+    const tr = document.createElement('tr');
+    tr.className = 'fila-detalle';
+    const td = document.createElement('td');
+    td.colSpan = 8;
+    td.innerHTML = `
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
         <div class="campo"><label>Precio de compra</label><input type="number" step="0.01" class="c-precio" value="${p.precio_compra??''}" /></div>
         <div class="campo"><label>Rubro</label><input type="text" class="c-rubro" value="${p.rubro??''}" placeholder="ej: limpieza" /></div>
         <div class="campo"><label>Nombre general (ranking)</label><input type="text" class="c-generico" value="${p.producto_generico??''}" placeholder="ej: guantes nitrilo" /></div>
@@ -478,13 +527,11 @@
         <button class="btn btn-primary c-guardar" style="padding:6px 12px; font-size:12px;">Guardar</button>
       </div>
     `;
-    div.querySelector('input[type=checkbox]').onchange = async (e) => {
-      await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
-    };
-    div.querySelector('.toggle-contab').onclick = () => div.querySelector('.contab').classList.toggle('open');
-    div.querySelector('.c-guardar').onclick = async (e) => {
+    tr.appendChild(td);
+
+    td.querySelector('.c-guardar').onclick = async (e) => {
       const btn = e.target; btn.textContent = 'Guardando...';
-      const archivo = div.querySelector('.c-archivo').files[0];
+      const archivo = td.querySelector('.c-archivo').files[0];
       let facturaUrl = p.factura_url || null;
       if (archivo) {
         const nombre = `${p.order_id}_${Date.now()}_${archivo.name}`;
@@ -493,23 +540,23 @@
         else alert('Error subiendo factura: ' + upErr.message);
       }
       await db.from('pedidos').update({
-        precio_compra: div.querySelector('.c-precio').value ? Number(div.querySelector('.c-precio').value) : null,
-        rubro: div.querySelector('.c-rubro').value || null,
-        producto_generico: div.querySelector('.c-generico').value || null,
-        iva_monto: div.querySelector('.c-iva').value ? Number(div.querySelector('.c-iva').value) : null,
-        moneda_original: div.querySelector('.c-monedaorig').value || null,
-        tipo_cambio: div.querySelector('.c-tc').value ? Number(div.querySelector('.c-tc').value) : null,
-        notas: div.querySelector('.c-notas').value || null,
-        comentarios: div.querySelector('.c-comentarios').value || null,
-        factura_adjunta: div.querySelector('.c-factura').checked,
-        deducible: div.querySelector('.c-deducible').checked,
-        cargado_en_cotizador: div.querySelector('.c-cotizador').checked,
+        precio_compra: td.querySelector('.c-precio').value ? Number(td.querySelector('.c-precio').value) : null,
+        rubro: td.querySelector('.c-rubro').value || null,
+        producto_generico: td.querySelector('.c-generico').value || null,
+        iva_monto: td.querySelector('.c-iva').value ? Number(td.querySelector('.c-iva').value) : null,
+        moneda_original: td.querySelector('.c-monedaorig').value || null,
+        tipo_cambio: td.querySelector('.c-tc').value ? Number(td.querySelector('.c-tc').value) : null,
+        notas: td.querySelector('.c-notas').value || null,
+        comentarios: td.querySelector('.c-comentarios').value || null,
+        factura_adjunta: td.querySelector('.c-factura').checked,
+        deducible: td.querySelector('.c-deducible').checked,
+        cargado_en_cotizador: td.querySelector('.c-cotizador').checked,
         factura_url: facturaUrl,
       }).eq('order_id', p.order_id);
       btn.textContent = 'Guardado ✓';
       setTimeout(() => cargarPedidos(), 500);
     };
-    return div;
+    return tr;
   }
 
   /* ---------- REPORTES (gráficos + tablas, repartido en varias páginas del sidebar) ---------- */
