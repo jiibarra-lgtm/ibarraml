@@ -3,298 +3,578 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mis Pedidos ML</title>
+<title>Pedidos — Ibarra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#0d0f14; --card:#161a22; --card2:#1c2129; --border:#262c37;
-    --text:#eceef2; --muted:#8c93a3; --accent:#5b7cff; --accent2:#2fd0a6;
-    --ok:#2ecc71; --warn:#f5a623; --bad:#e74c3c;
+    --indigo:#4f46e5; --indigo-d:#3730a3; --teal:#0d9488; --teal-l:#14b8a6;
+    --bg:#f6f7fb; --card:#ffffff; --border:#e4e6ef; --text:#1c1f2b; --muted:#6b7086;
+    --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+    --radius:12px;
+  }
+  [data-theme="dark"]{
+    --bg:#11131c; --card:#181b27; --border:#2a2e3d; --text:#eceef5; --muted:#8a8fa3;
   }
   *{box-sizing:border-box;}
-  body{background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,sans-serif; margin:0; padding:0 0 60px;}
-  header{padding:28px 24px 20px; border-bottom:1px solid var(--border);}
-  h1{font-size:21px; margin:0 0 4px; font-weight:600;}
-  .sub{color:var(--muted); font-size:13px; margin:0;}
-  .toolbar{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;}
-  button{background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer; font-weight:500;}
-  button.secondary{background:var(--card2); border:1px solid var(--border); color:var(--text);}
-  button.small{padding:6px 10px; font-size:12px; border-radius:6px;}
-  #estado{font-size:13px; color:var(--accent2); margin-top:10px; min-height:16px;}
+  body{background:var(--bg); color:var(--text); font-family:'Archivo',sans-serif; margin:0; transition:background .2s;}
+  code, .mono{font-family:'Spline Sans Mono',monospace;}
+  h1,h2,h3{font-weight:600; margin:0;}
+  button{font-family:inherit; cursor:pointer; border:none; border-radius:8px; font-weight:500;}
+  input,select{font-family:inherit;}
 
-  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; padding:20px 24px;}
-  .stat{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
-  .stat .num{font-size:22px; font-weight:600;}
-  .stat .lbl{font-size:12px; color:var(--muted); margin-top:2px;}
+  /* --- Login gate --- */
+  #gate{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100;}
+  .gate-box{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:32px; width:280px; text-align:center;}
+  .gate-box h2{margin-bottom:6px;}
+  .gate-box p{color:var(--muted); font-size:13px; margin:0 0 18px;}
+  .gate-box input{width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; margin-bottom:10px;}
+  .gate-box button{width:100%; background:var(--indigo); color:#fff; padding:10px; font-size:14px;}
+  .gate-error{color:var(--bad); font-size:12px; min-height:16px; margin-bottom:6px;}
 
-  .filtros{display:flex; gap:8px; padding:0 24px 16px; flex-wrap:wrap;}
-  .filtros input, .filtros select{background:var(--card2); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; font-size:13px;}
+  /* --- Layout --- */
+  #app{display:none; max-width:1100px; margin:0 auto; padding:0 20px 60px;}
+  header{padding:24px 0 16px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .dot{width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,var(--indigo),var(--teal-l));}
+  .brand h1{font-size:19px;}
+  .brand .sub{color:var(--muted); font-size:12px; margin-top:2px;}
+  .header-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .btn{padding:9px 14px; font-size:13px; border-radius:8px;}
+  .btn-primary{background:var(--indigo); color:#fff;}
+  .btn-primary:hover{background:var(--indigo-d);}
+  .btn-outline{background:transparent; border:1px solid var(--border); color:var(--text);}
+  .btn-outline:hover{background:var(--card);}
+  .btn-icon{width:34px; height:34px; padding:0; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px;}
+  #estado{font-size:12px; color:var(--teal); margin-top:6px; min-height:14px;}
 
-  main{padding:0 24px;}
-  .categoria{margin-bottom:14px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card);}
-  .cat-header{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; user-select:none;}
-  .cat-header:hover{background:var(--card2);}
-  .cat-title{font-size:14px; font-weight:600;}
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px;}
+  .tab{padding:10px 4px; font-size:13px; color:var(--muted); background:none; border-bottom:2px solid transparent; border-radius:0; margin-right:16px;}
+  .tab.active{color:var(--indigo); border-bottom-color:var(--indigo); font-weight:600;}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;}
+  .stat .num{font-size:21px; font-weight:700;}
+  .stat .lbl{font-size:11px; color:var(--muted); margin-top:2px;}
+
+  .alertas{display:flex; flex-direction:column; gap:8px; margin-bottom:16px;}
+  .alerta{background:rgba(217,119,6,.1); border:1px solid rgba(217,119,6,.3); color:var(--warn); border-radius:8px; padding:10px 14px; font-size:13px;}
+  .alerta.bad{background:rgba(220,38,38,.08); border-color:rgba(220,38,38,.3); color:var(--bad);}
+
+  .filtros{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .filtros input, .filtros select{background:var(--card); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; font-size:13px;}
+
+  .categoria{margin-bottom:12px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--card);}
+  .cat-header{display:flex; justify-content:space-between; align-items:center; padding:13px 16px; cursor:pointer;}
+  .cat-header:hover{background:var(--bg);}
+  .cat-title{font-size:13px; font-weight:600;}
   .cat-count{font-size:12px; color:var(--muted); margin-left:8px; font-weight:400;}
-  .cat-total{font-size:13px; color:var(--accent2); font-weight:600;}
+  .cat-total{font-size:13px; color:var(--teal); font-weight:600;}
   .cat-body{display:none; border-top:1px solid var(--border);}
   .cat-body.open{display:block;}
 
-  .pedido{padding:14px 16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px;}
+  .pedido{padding:13px 16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px;}
   .pedido:last-child{border-bottom:none;}
   .fila-principal{display:flex; align-items:center; gap:12px;}
-  .pedido input[type=checkbox]{width:19px; height:19px; accent-color:var(--ok); flex-shrink:0;}
+  .pedido input[type=checkbox]{width:18px; height:18px; accent-color:var(--teal); flex-shrink:0;}
   .info{flex:1; min-width:0;}
-  .titulo{font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .meta{font-size:12px; color:var(--muted); margin-top:2px;}
-  .badge{font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;}
-  .badge.delivered{background:rgba(46,204,113,.15); color:var(--ok);}
-  .badge.shipped{background:rgba(245,166,35,.15); color:var(--warn);}
-  .badge.pending{background:rgba(140,147,163,.15); color:var(--muted);}
-  .badge.other{background:rgba(231,76,60,.15); color:var(--bad);}
-  .toggle-contab{font-size:12px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; font-weight:500;}
+  .titulo{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .meta{font-size:11px; color:var(--muted); margin-top:2px;}
+  .badge{font-size:10px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .badge.delivered{background:rgba(22,163,74,.12); color:var(--ok);}
+  .badge.shipped{background:rgba(217,119,6,.12); color:var(--warn);}
+  .badge.pending{background:rgba(107,112,134,.12); color:var(--muted);}
+  .badge.other{background:rgba(220,38,38,.12); color:var(--bad);}
+  .toggle-contab{font-size:11px; color:var(--indigo); background:none; padding:0;}
 
-  .contab{display:none; background:var(--card2); border-radius:8px; padding:12px; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+  .contab{display:none; background:var(--bg); border-radius:8px; padding:12px; gap:10px; flex-wrap:wrap; align-items:flex-end;}
   .contab.open{display:flex;}
   .campo{display:flex; flex-direction:column; gap:4px;}
-  .campo label{font-size:11px; color:var(--muted);}
-  .campo input[type=number], .campo input[type=text]{background:var(--card); border:1px solid var(--border); color:var(--text); padding:7px 8px; border-radius:6px; font-size:13px; width:120px;}
-  .campo.factura{flex-direction:row; align-items:center; gap:6px;}
-  .campo.factura label{font-size:12px; color:var(--text);}
-  .campo input[type=file]{font-size:11px; max-width:140px;}
-  .link-factura{font-size:12px; color:var(--accent2);}
+  .campo label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  .campo input, .campo select{background:var(--card); border:1px solid var(--border); color:var(--text); padding:7px 8px; border-radius:6px; font-size:12px; width:120px;}
+  .campo.check{flex-direction:row; align-items:center; gap:6px;}
+  .campo.check label{font-size:11px; text-transform:none; color:var(--text);}
+  .campo input[type=file]{font-size:11px; max-width:130px;}
+  .link-factura{font-size:11px; color:var(--teal); align-self:center;}
 
   .empty{color:var(--muted); font-size:13px; padding:40px 24px; text-align:center;}
+
+  /* --- Reportes --- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
+  .panel h3{font-size:13px; margin-bottom:12px;}
+  .panel-chart{position:relative; height:220px;}
+  table.reporte{width:100%; border-collapse:collapse; font-size:12px;}
+  table.reporte th{text-align:left; color:var(--muted); font-weight:500; padding:6px 4px; border-bottom:1px solid var(--border);}
+  table.reporte td{padding:6px 4px; border-bottom:1px solid var(--border);}
+  table.reporte tr:last-child td{border-bottom:none;}
+  .config-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .config-row .campo input{width:90px;}
 </style>
 </head>
-<body>
-<header>
-  <h1>Mis Pedidos — Mercado Libre</h1>
-  <p class="sub">Se sincroniza con tu cuenta. Tildá cuando lo verificás recibido.</p>
-  <div class="toolbar">
-    <button id="btnConectar">Conectar cuenta de ML</button>
-    <button id="btnSync" class="secondary">Actualizar ahora</button>
+<body data-theme="dark">
+
+<div id="gate">
+  <div class="gate-box">
+    <h2>Pedidos Ibarra</h2>
+    <p>Ingresá la contraseña para entrar</p>
+    <div class="gate-error" id="gateError"></div>
+    <input type="password" id="gatePass" placeholder="Contraseña" />
+    <button class="btn-primary" id="gateBtn" style="border-radius:8px;">Entrar</button>
   </div>
-  <div id="estado"></div>
-</header>
-
-<div class="stats" id="stats"></div>
-
-<div class="filtros">
-  <input type="text" id="buscar" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
-  <select id="filtroEstado">
-    <option value="">Todos los estados</option>
-    <option value="delivered">Entregado</option>
-    <option value="shipped">En camino</option>
-    <option value="pending">Pendiente</option>
-  </select>
 </div>
 
-<main id="lista"></main>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>Pedidos — Ibarra Insumos</h1>
+        <div class="sub">Compras en Mercado Libre, sincronizadas y ordenadas.</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="btnTheme" title="Cambiar tema">◐</button>
+      <button class="btn btn-outline" id="btnConectar">Conectar ML</button>
+      <button class="btn btn-primary" id="btnSync">Actualizar ahora</button>
+      <button class="btn-icon" id="btnLogout" title="Salir">⎋</button>
+    </div>
+  </header>
+  <div id="estado"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="pedidos">Pedidos</button>
+    <button class="tab" data-tab="reportes">Reportes</button>
+  </div>
+
+  <div id="tab-pedidos">
+    <div class="stats" id="stats"></div>
+    <div class="alertas" id="alertas"></div>
+    <div class="filtros">
+      <input type="text" id="buscar" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+      <select id="filtroEstado">
+        <option value="">Todos los estados</option>
+        <option value="delivered">Entregado</option>
+        <option value="shipped">En camino</option>
+        <option value="pending">Pendiente</option>
+      </select>
+    </div>
+    <main id="lista"></main>
+  </div>
+
+  <div id="tab-reportes" style="display:none;">
+    <div class="config-row panel">
+      <div class="campo"><label>Alerta sin factura (días)</label><input type="number" id="cfgDiasFactura" /></div>
+      <div class="campo"><label>Alerta monto alto</label><input type="number" id="cfgMontoAlerta" /></div>
+      <button class="btn btn-outline" id="btnGuardarConfig" style="align-self:flex-end;">Guardar</button>
+      <button class="btn btn-outline" id="btnExportar" style="align-self:flex-end; margin-left:auto;">Exportar CSV</button>
+    </div>
+
+    <div class="stats" id="statsReportes"></div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>Gasto por categoría</h3>
+        <div class="panel-chart"><canvas id="chartCategoria"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Gasto por mes</h3>
+        <div class="panel-chart"><canvas id="chartMes"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>Top 10 productos (por nombre general)</h3>
+        <table class="reporte" id="tablaTop"></table>
+      </div>
+      <div class="panel">
+        <h3>Gasto por método de pago</h3>
+        <table class="reporte" id="tablaMetodoPago"></table>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>Gasto por rubro</h3>
+        <table class="reporte" id="tablaRubro"></table>
+      </div>
+      <div class="panel">
+        <h3>Deducible vs. no deducible</h3>
+        <table class="reporte" id="tablaDeducible"></table>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   const SUPABASE_URL = 'https://uafheldlrloqypeelnyx.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZmhlbGRscmxvcXlwZWVsbnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNDI3MDksImV4cCI6MjEwMjgxODcwOX0.caJAisAp_BW2hTiEqQ3Lef9TbsJ_7caa5rFbY1x5978';
+  const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  /* ---------- LOGIN GATE ---------- */
+  const TOKEN_KEY = 'pedidos_ml_token';
+  function tokenValido() {
+    const t = localStorage.getItem(TOKEN_KEY);
+    if (!t) return false;
+    try {
+      const decoded = atob(t);
+      const expira = Number(decoded.split('.')[0]);
+      return Date.now() < expira;
+    } catch { return false; }
+  }
+  function mostrarApp() {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  }
+  if (tokenValido()) {
+    mostrarApp();
+  }
+  document.getElementById('gateBtn').onclick = async () => {
+    const pass = document.getElementById('gatePass').value;
+    const errEl = document.getElementById('gateError');
+    errEl.textContent = '';
+    if (!pass) { errEl.textContent = 'Ingresá la contraseña'; return; }
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) { errEl.textContent = data.error || 'Error'; return; }
+      localStorage.setItem(TOKEN_KEY, data.token);
+      mostrarApp();
+    } catch (e) { errEl.textContent = 'Error de red'; }
+  };
+  document.getElementById('gatePass').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('gateBtn').click(); };
+  document.getElementById('btnLogout').onclick = () => { localStorage.removeItem(TOKEN_KEY); location.reload(); };
+
+  /* ---------- THEME ---------- */
+  document.getElementById('btnTheme').onclick = () => {
+    const cur = document.body.getAttribute('data-theme');
+    document.body.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  };
+
+  /* ---------- TABS ---------- */
+  document.querySelectorAll('.tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('tab-pedidos').style.display = t.dataset.tab === 'pedidos' ? 'block' : 'none';
+      document.getElementById('tab-reportes').style.display = t.dataset.tab === 'reportes' ? 'block' : 'none';
+      if (t.dataset.tab === 'reportes') renderReportes();
+    };
+  });
+
+  /* ---------- ESTADO GLOBAL ---------- */
+  let TODOS = [];
+  let CONFIG = { dias_alerta_factura: 7, monto_alerta: 100000 };
+  let chartCat, chartMes;
+
   const estadoEl = document.getElementById('estado');
-  const listaEl = document.getElementById('lista');
-  const statsEl = document.getElementById('stats');
-  let TODOS_LOS_PEDIDOS = [];
 
   document.getElementById('btnConectar').onclick = () => window.location.href = '/api/login';
 
-  document.getElementById('btnSync').onclick = async () => {
-    estadoEl.textContent = 'Sincronizando con Mercado Libre (puede tardar si hay muchos pedidos)...';
+  async function sincronizar(silencioso) {
+    if (!silencioso) estadoEl.textContent = 'Sincronizando con Mercado Libre...';
     try {
       const resp = await fetch('/api/sync');
       const data = await resp.json();
       if (resp.ok) {
-        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados.`;
+        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados. (última sync: ${new Date().toLocaleTimeString('es-AR')})`;
         cargarPedidos();
-      } else {
+      } else if (!silencioso) {
         estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
       }
-    } catch (e) {
-      estadoEl.textContent = 'Error de red: ' + e.message;
-    }
-  };
+    } catch (e) { if (!silencioso) estadoEl.textContent = 'Error de red: ' + e.message; }
+  }
+  document.getElementById('btnSync').onclick = () => sincronizar(false);
 
-  document.getElementById('buscar').oninput = renderizar;
-  document.getElementById('filtroEstado').onchange = renderizar;
+  document.getElementById('buscar').oninput = renderizarPedidos;
+  document.getElementById('filtroEstado').onchange = renderizarPedidos;
 
   function badgeClass(status) {
     if (status === 'delivered') return 'delivered';
-    if (status === 'shipped' || status === 'ready_to_ship' || status === 'handling') return 'shipped';
+    if (['shipped','ready_to_ship','handling'].includes(status)) return 'shipped';
     if (!status) return 'pending';
     return 'other';
   }
   function badgeLabel(status) {
-    const map = {
-      delivered: 'Entregado', shipped: 'En camino', ready_to_ship: 'Listo para enviar',
-      handling: 'Preparando', pending: 'Pendiente', not_delivered: 'No entregado', cancelled: 'Cancelado',
-    };
+    const map = { delivered:'Entregado', shipped:'En camino', ready_to_ship:'Listo para enviar', handling:'Preparando', pending:'Pendiente', not_delivered:'No entregado', cancelled:'Cancelado' };
     return map[status] || (status || 'Sin envío');
   }
-  function fmtMoneda(n, moneda) {
-    if (n === null || n === undefined) return '-';
-    return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ' + (moneda || '');
+  function fmtMoneda(n) {
+    if (n === null || n === undefined || isNaN(n)) return '-';
+    return '$' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  }
+  function nombreGenerico(p) {
+    return p.producto_generico || p.categoria_nombre || 'Sin nombre';
   }
 
+  /* ---------- ALERTAS ---------- */
+  function renderAlertas(pedidos) {
+    const cont = document.getElementById('alertas');
+    cont.innerHTML = '';
+    const ahora = Date.now();
+    const sinFactura = pedidos.filter(p => !p.factura_adjunta && p.fecha_creacion &&
+      (ahora - new Date(p.fecha_creacion).getTime()) / 86400000 > CONFIG.dias_alerta_factura);
+    const montoAlto = pedidos.filter(p => Number(p.total) > CONFIG.monto_alerta);
+
+    if (sinFactura.length) {
+      const div = document.createElement('div');
+      div.className = 'alerta';
+      div.textContent = `${sinFactura.length} pedido(s) llevan más de ${CONFIG.dias_alerta_factura} días sin factura cargada.`;
+      cont.appendChild(div);
+    }
+    if (montoAlto.length) {
+      const div = document.createElement('div');
+      div.className = 'alerta bad';
+      div.textContent = `${montoAlto.length} pedido(s) superan el monto de alerta (${fmtMoneda(CONFIG.monto_alerta)}).`;
+      cont.appendChild(div);
+    }
+  }
+
+  /* ---------- STATS PEDIDOS ---------- */
   function renderStats(pedidos) {
     const total = pedidos.length;
     const entregados = pedidos.filter(p => p.status_envio === 'delivered').length;
     const enCamino = pedidos.filter(p => ['shipped','ready_to_ship','handling'].includes(p.status_envio)).length;
-    const gastoTotal = pedidos.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+    const gastoTotal = pedidos.reduce((a,p) => a + (Number(p.total)||0), 0);
     const sinFactura = pedidos.filter(p => !p.factura_adjunta).length;
-
-    statsEl.innerHTML = `
+    document.getElementById('stats').innerHTML = `
       <div class="stat"><div class="num">${total}</div><div class="lbl">Pedidos totales</div></div>
       <div class="stat"><div class="num" style="color:var(--ok)">${entregados}</div><div class="lbl">Entregados</div></div>
       <div class="stat"><div class="num" style="color:var(--warn)">${enCamino}</div><div class="lbl">En camino</div></div>
-      <div class="stat"><div class="num">$${fmtMoneda(gastoTotal, '')}</div><div class="lbl">Gasto total (aprox)</div></div>
-      <div class="stat"><div class="num" style="color:var(--bad)">${sinFactura}</div><div class="lbl">Sin factura cargada</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto total</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${sinFactura}</div><div class="lbl">Sin factura</div></div>
     `;
   }
 
-  function agruparPorCategoria(pedidos) {
-    const grupos = {};
-    for (const p of pedidos) {
-      const cat = p.categoria_nombre || 'Sin categoría';
-      if (!grupos[cat]) grupos[cat] = [];
-      grupos[cat].push(p);
-    }
-    return grupos;
-  }
-
-  function renderizar() {
+  /* ---------- LISTA DE PEDIDOS ---------- */
+  function renderizarPedidos() {
     const busqueda = document.getElementById('buscar').value.toLowerCase();
     const filtroEstado = document.getElementById('filtroEstado').value;
-
-    let pedidos = TODOS_LOS_PEDIDOS.filter(p => {
-      const matchBusqueda = !busqueda ||
-        (p.titulo || '').toLowerCase().includes(busqueda) ||
-        (p.vendedor_nickname || '').toLowerCase().includes(busqueda);
+    let pedidos = TODOS.filter(p => {
+      const matchBusqueda = !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda);
       const matchEstado = !filtroEstado || badgeClass(p.status_envio) === filtroEstado;
       return matchBusqueda && matchEstado;
     });
-
     renderStats(pedidos);
+    renderAlertas(pedidos);
 
-    if (pedidos.length === 0) {
-      listaEl.innerHTML = '<div class="empty">No hay pedidos que coincidan con el filtro.</div>';
-      return;
-    }
+    const listaEl = document.getElementById('lista');
+    if (!pedidos.length) { listaEl.innerHTML = '<div class="empty">No hay pedidos que coincidan.</div>'; return; }
 
-    const grupos = agruparPorCategoria(pedidos);
-    const catsOrdenadas = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);
+    const grupos = {};
+    pedidos.forEach(p => { const c = p.categoria_nombre || 'Sin categoría'; (grupos[c] = grupos[c]||[]).push(p); });
+    const cats = Object.keys(grupos).sort((a,b) => grupos[b].length - grupos[a].length);
 
     listaEl.innerHTML = '';
-    for (const cat of catsOrdenadas) {
+    for (const cat of cats) {
       const items = grupos[cat];
-      const totalCat = items.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
-
+      const totalCat = items.reduce((a,p)=>a+(Number(p.total)||0),0);
       const catDiv = document.createElement('div');
       catDiv.className = 'categoria';
-      catDiv.innerHTML = `
-        <div class="cat-header">
-          <span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span>
-          <span class="cat-total">$${fmtMoneda(totalCat, '')}</span>
-        </div>
-        <div class="cat-body"></div>
-      `;
+      catDiv.innerHTML = `<div class="cat-header"><span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span><span class="cat-total">${fmtMoneda(totalCat)}</span></div><div class="cat-body"></div>`;
       const header = catDiv.querySelector('.cat-header');
       const body = catDiv.querySelector('.cat-body');
       header.onclick = () => body.classList.toggle('open');
 
-      for (const p of items) {
-        const pedidoDiv = document.createElement('div');
-        pedidoDiv.className = 'pedido';
-        pedidoDiv.innerHTML = `
-          <div class="fila-principal">
-            <input type="checkbox" ${p.verificado_por_mi ? 'checked' : ''} />
-            <div class="info">
-              <div class="titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-              <div class="meta">${p.vendedor_nickname || ''} · $${fmtMoneda(p.total, p.moneda)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
-            </div>
-            <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
-            <button class="toggle-contab">Contabilidad</button>
-          </div>
-          <div class="contab">
-            <div class="campo">
-              <label>Precio de compra</label>
-              <input type="number" step="0.01" class="input-precio" value="${p.precio_compra ?? ''}" placeholder="0.00" />
-            </div>
-            <div class="campo">
-              <label>Notas</label>
-              <input type="text" class="input-notas" value="${p.notas ?? ''}" placeholder="opcional" />
-            </div>
-            <div class="campo factura">
-              <input type="checkbox" class="chk-factura" ${p.factura_adjunta ? 'checked' : ''} />
-              <label>Factura adjunta</label>
-            </div>
-            <div class="campo">
-              <label>Subir factura (PDF/foto)</label>
-              <input type="file" class="input-factura" accept=".pdf,image/*" />
-            </div>
-            ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver factura actual</a>` : ''}
-            <button class="small btn-guardar">Guardar</button>
-          </div>
-        `;
-
-        pedidoDiv.querySelector('input[type=checkbox]').onchange = async (e) => {
-          await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
-        };
-
-        pedidoDiv.querySelector('.toggle-contab').onclick = () => {
-          pedidoDiv.querySelector('.contab').classList.toggle('open');
-        };
-
-        pedidoDiv.querySelector('.btn-guardar').onclick = async (e) => {
-          const btn = e.target;
-          btn.textContent = 'Guardando...';
-          const precio = pedidoDiv.querySelector('.input-precio').value;
-          const notas = pedidoDiv.querySelector('.input-notas').value;
-          const facturaCheck = pedidoDiv.querySelector('.chk-factura').checked;
-          const archivo = pedidoDiv.querySelector('.input-factura').files[0];
-
-          let facturaUrl = p.factura_url || null;
-          if (archivo) {
-            const nombreArchivo = `${p.order_id}_${Date.now()}_${archivo.name}`;
-            const { error: uploadErr } = await db.storage.from('facturas').upload(nombreArchivo, archivo);
-            if (!uploadErr) {
-              const { data: pub } = db.storage.from('facturas').getPublicUrl(nombreArchivo);
-              facturaUrl = pub.publicUrl;
-            } else {
-              alert('Error subiendo factura: ' + uploadErr.message + ' (¿creaste el bucket "facturas" en Supabase Storage?)');
-            }
-          }
-
-          await db.from('pedidos').update({
-            precio_compra: precio ? Number(precio) : null,
-            notas: notas || null,
-            factura_adjunta: facturaCheck,
-            factura_url: facturaUrl,
-          }).eq('order_id', p.order_id);
-
-          btn.textContent = 'Guardado ✓';
-          setTimeout(() => cargarPedidos(), 600);
-        };
-
-        body.appendChild(pedidoDiv);
-      }
+      for (const p of items) body.appendChild(renderPedido(p));
       listaEl.appendChild(catDiv);
     }
   }
 
+  function renderPedido(p) {
+    const div = document.createElement('div');
+    div.className = 'pedido';
+    div.innerHTML = `
+      <div class="fila-principal">
+        <input type="checkbox" ${p.verificado_por_mi?'checked':''} />
+        <div class="info">
+          <div class="titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+          <div class="meta">${p.vendedor_nickname||''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+        </div>
+        <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+        <button class="toggle-contab">Detalle</button>
+      </div>
+      <div class="contab">
+        <div class="campo"><label>Precio de compra</label><input type="number" step="0.01" class="c-precio" value="${p.precio_compra??''}" /></div>
+        <div class="campo"><label>Rubro</label><input type="text" class="c-rubro" value="${p.rubro??''}" placeholder="ej: limpieza" /></div>
+        <div class="campo"><label>Nombre general (para ranking)</label><input type="text" class="c-generico" value="${p.producto_generico??''}" placeholder="ej: guantes nitrilo" /></div>
+        <div class="campo"><label>IVA (monto)</label><input type="number" step="0.01" class="c-iva" value="${p.iva_monto??''}" /></div>
+        <div class="campo"><label>Moneda orig.</label><input type="text" class="c-monedaorig" value="${p.moneda_original??''}" placeholder="USD" /></div>
+        <div class="campo"><label>Tipo de cambio</label><input type="number" step="0.01" class="c-tc" value="${p.tipo_cambio??''}" /></div>
+        <div class="campo"><label>Método de pago</label><input type="text" value="${p.metodo_pago||'-'}" disabled /></div>
+        <div class="campo"><label>Notas</label><input type="text" class="c-notas" value="${p.notas??''}" /></div>
+        <div class="campo"><label>Comentarios internos</label><input type="text" class="c-comentarios" value="${p.comentarios??''}" /></div>
+        <div class="campo check"><input type="checkbox" class="c-factura" ${p.factura_adjunta?'checked':''} /><label>Factura adjunta</label></div>
+        <div class="campo check"><input type="checkbox" class="c-deducible" ${p.deducible?'checked':''} /><label>Deducible</label></div>
+        <div class="campo check"><input type="checkbox" class="c-cotizador" ${p.cargado_en_cotizador?'checked':''} /><label>Cargado en Cotizador</label></div>
+        <div class="campo"><label>Subir factura</label><input type="file" class="c-archivo" accept=".pdf,image/*" /></div>
+        ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver factura</a>` : ''}
+        <button class="btn btn-primary c-guardar" style="padding:6px 12px; font-size:12px;">Guardar</button>
+      </div>
+    `;
+    div.querySelector('input[type=checkbox]').onchange = async (e) => {
+      await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
+    };
+    div.querySelector('.toggle-contab').onclick = () => div.querySelector('.contab').classList.toggle('open');
+
+    div.querySelector('.c-guardar').onclick = async (e) => {
+      const btn = e.target; btn.textContent = 'Guardando...';
+      const archivo = div.querySelector('.c-archivo').files[0];
+      let facturaUrl = p.factura_url || null;
+      if (archivo) {
+        const nombre = `${p.order_id}_${Date.now()}_${archivo.name}`;
+        const { error: upErr } = await db.storage.from('facturas').upload(nombre, archivo);
+        if (!upErr) facturaUrl = db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl;
+        else alert('Error subiendo factura: ' + upErr.message);
+      }
+      await db.from('pedidos').update({
+        precio_compra: div.querySelector('.c-precio').value ? Number(div.querySelector('.c-precio').value) : null,
+        rubro: div.querySelector('.c-rubro').value || null,
+        producto_generico: div.querySelector('.c-generico').value || null,
+        iva_monto: div.querySelector('.c-iva').value ? Number(div.querySelector('.c-iva').value) : null,
+        moneda_original: div.querySelector('.c-monedaorig').value || null,
+        tipo_cambio: div.querySelector('.c-tc').value ? Number(div.querySelector('.c-tc').value) : null,
+        notas: div.querySelector('.c-notas').value || null,
+        comentarios: div.querySelector('.c-comentarios').value || null,
+        factura_adjunta: div.querySelector('.c-factura').checked,
+        deducible: div.querySelector('.c-deducible').checked,
+        cargado_en_cotizador: div.querySelector('.c-cotizador').checked,
+        factura_url: facturaUrl,
+      }).eq('order_id', p.order_id);
+      btn.textContent = 'Guardado ✓';
+      setTimeout(() => cargarPedidos(), 500);
+    };
+    return div;
+  }
+
+  /* ---------- REPORTES ---------- */
+  function renderReportes() {
+    const pedidos = TODOS;
+    const gastoTotal = pedidos.reduce((a,p)=>a+(Number(p.total)||0),0);
+
+    // Mes actual y proyección
+    const ahora = new Date();
+    const mesActual = pedidos.filter(p => p.fecha_creacion && new Date(p.fecha_creacion).getMonth() === ahora.getMonth() && new Date(p.fecha_creacion).getFullYear() === ahora.getFullYear());
+    const gastoMesActual = mesActual.reduce((a,p)=>a+(Number(p.total)||0),0);
+    const diasTranscurridos = ahora.getDate();
+    const diasDelMes = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0).getDate();
+    const proyeccion = diasTranscurridos > 0 ? (gastoMesActual / diasTranscurridos) * diasDelMes : 0;
+
+    document.getElementById('statsReportes').innerHTML = `
+      <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto histórico</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoMesActual)}</div><div class="lbl">Gasto este mes</div></div>
+      <div class="stat"><div class="num" style="color:var(--indigo)">${fmtMoneda(proyeccion)}</div><div class="lbl">Proyección fin de mes</div></div>
+      <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Pedidos totales</div></div>
+    `;
+
+    // Gasto por categoría (pie)
+    const porCat = {};
+    pedidos.forEach(p => { const c = p.categoria_nombre || 'Sin categoría'; porCat[c] = (porCat[c]||0) + (Number(p.total)||0); });
+    const catLabels = Object.keys(porCat).sort((a,b)=>porCat[b]-porCat[a]).slice(0,8);
+    if (chartCat) chartCat.destroy();
+    chartCat = new Chart(document.getElementById('chartCategoria'), {
+      type: 'doughnut',
+      data: { labels: catLabels, datasets: [{ data: catLabels.map(l=>porCat[l]), backgroundColor: ['#4f46e5','#0d9488','#14b8a6','#818cf8','#2dd4bf','#6366f1','#5eead4','#a5b4fc'] }] },
+      options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+    });
+
+    // Gasto por mes (bar, últimos 12 meses)
+    const porMes = {};
+    pedidos.forEach(p => {
+      if (!p.fecha_creacion) return;
+      const d = new Date(p.fecha_creacion);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      porMes[key] = (porMes[key]||0) + (Number(p.total)||0);
+    });
+    const mesesOrdenados = Object.keys(porMes).sort().slice(-12);
+    if (chartMes) chartMes.destroy();
+    chartMes = new Chart(document.getElementById('chartMes'), {
+      type: 'bar',
+      data: { labels: mesesOrdenados, datasets: [{ data: mesesOrdenados.map(m=>porMes[m]), backgroundColor: '#4f46e5', borderRadius: 4 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+    });
+
+    // Top 10 productos por nombre genérico
+    const porGenerico = {};
+    pedidos.forEach(p => { const n = nombreGenerico(p); (porGenerico[n] = porGenerico[n] || { cant: 0, gasto: 0 }); porGenerico[n].cant++; porGenerico[n].gasto += Number(p.total)||0; });
+    const topGenericos = Object.keys(porGenerico).sort((a,b)=>porGenerico[b].cant - porGenerico[a].cant).slice(0,10);
+    document.getElementById('tablaTop').innerHTML = `<tr><th>Producto</th><th>Compras</th><th>Gasto</th></tr>` +
+      topGenericos.map(n => `<tr><td>${n}</td><td>${porGenerico[n].cant}</td><td>${fmtMoneda(porGenerico[n].gasto)}</td></tr>`).join('');
+
+    // Gasto por método de pago
+    const porMetodo = {};
+    pedidos.forEach(p => { const m = p.metodo_pago || 'No informado'; porMetodo[m] = (porMetodo[m]||0) + (Number(p.total)||0); });
+    document.getElementById('tablaMetodoPago').innerHTML = `<tr><th>Método</th><th>Gasto</th></tr>` +
+      Object.keys(porMetodo).sort((a,b)=>porMetodo[b]-porMetodo[a]).map(m => `<tr><td>${m}</td><td>${fmtMoneda(porMetodo[m])}</td></tr>`).join('');
+
+    // Gasto por rubro
+    const porRubro = {};
+    pedidos.forEach(p => { const r = p.rubro || 'Sin rubro'; porRubro[r] = (porRubro[r]||0) + (Number(p.total)||0); });
+    document.getElementById('tablaRubro').innerHTML = `<tr><th>Rubro</th><th>Gasto</th></tr>` +
+      Object.keys(porRubro).sort((a,b)=>porRubro[b]-porRubro[a]).map(r => `<tr><td>${r}</td><td>${fmtMoneda(porRubro[r])}</td></tr>`).join('');
+
+    // Deducible vs no deducible
+    const deducible = pedidos.filter(p=>p.deducible===true).reduce((a,p)=>a+(Number(p.total)||0),0);
+    const noDeducible = pedidos.filter(p=>p.deducible===false).reduce((a,p)=>a+(Number(p.total)||0),0);
+    const sinClasificar = pedidos.filter(p=>p.deducible===null||p.deducible===undefined).reduce((a,p)=>a+(Number(p.total)||0),0);
+    document.getElementById('tablaDeducible').innerHTML = `<tr><th>Tipo</th><th>Gasto</th></tr>
+      <tr><td>Deducible</td><td>${fmtMoneda(deducible)}</td></tr>
+      <tr><td>No deducible</td><td>${fmtMoneda(noDeducible)}</td></tr>
+      <tr><td>Sin clasificar</td><td>${fmtMoneda(sinClasificar)}</td></tr>`;
+  }
+
+  document.getElementById('btnExportar').onclick = () => {
+    const headers = ['order_id','titulo','categoria','vendedor','total','moneda','precio_compra','rubro','metodo_pago','deducible','factura_adjunta','fecha_creacion','status_envio'];
+    const filas = TODOS.map(p => headers.map(h => `"${String(p[h]??'').replace(/"/g,'""')}"`).join(','));
+    const csv = [headers.join(','), ...filas].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `pedidos_ml_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  /* ---------- CONFIG ---------- */
+  async function cargarConfig() {
+    const { data } = await db.from('config').select('*').eq('id', 1).single();
+    if (data) {
+      CONFIG = data;
+      document.getElementById('cfgDiasFactura').value = data.dias_alerta_factura;
+      document.getElementById('cfgMontoAlerta').value = data.monto_alerta;
+    }
+  }
+  document.getElementById('btnGuardarConfig').onclick = async () => {
+    const dias = Number(document.getElementById('cfgDiasFactura').value) || 7;
+    const monto = Number(document.getElementById('cfgMontoAlerta').value) || 100000;
+    await db.from('config').update({ dias_alerta_factura: dias, monto_alerta: monto }).eq('id', 1);
+    CONFIG.dias_alerta_factura = dias; CONFIG.monto_alerta = monto;
+    renderizarPedidos();
+    alert('Configuración guardada');
+  };
+
+  /* ---------- CARGA ---------- */
   async function cargarPedidos() {
     const { data, error } = await db.from('pedidos').select('*').order('fecha_creacion', { ascending: false });
     if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
-    TODOS_LOS_PEDIDOS = data || [];
-    renderizar();
+    TODOS = data || [];
+    renderizarPedidos();
+    if (document.getElementById('tab-reportes').style.display !== 'none') renderReportes();
   }
 
-  cargarPedidos();
+  function init() {
+    cargarConfig();
+    cargarPedidos();
+    sincronizar(true); // sync inicial silenciosa
+    setInterval(() => sincronizar(true), 20000); // cada 20s mientras la pestaña esté abierta
+  }
 </script>
 </body>
 </html>
