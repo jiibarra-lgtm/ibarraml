@@ -46,8 +46,7 @@
   // Reemplazar con tus datos reales del proyecto Supabase de este sistema
   const SUPABASE_URL = 'TU_SUPABASE_URL';
   const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const estadoEl = document.getElementById('estado');
   const listaEl = document.getElementById('lista');
 
