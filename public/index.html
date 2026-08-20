@@ -7,63 +7,121 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --bg:#0f1115; --card:#1a1d24; --border:#2a2e37;
-    --text:#e8e9ec; --muted:#8a8f9a; --accent:#4f7cff;
+    --bg:#0d0f14; --card:#161a22; --card2:#1c2129; --border:#262c37;
+    --text:#eceef2; --muted:#8c93a3; --accent:#5b7cff; --accent2:#2fd0a6;
     --ok:#2ecc71; --warn:#f5a623; --bad:#e74c3c;
   }
   *{box-sizing:border-box;}
-  body{background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,sans-serif; margin:0; padding:24px;}
-  h1{font-size:20px; margin-bottom:4px;}
-  .sub{color:var(--muted); font-size:13px; margin-bottom:20px;}
-  .toolbar{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
-  button{background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer;}
-  button.secondary{background:var(--card); border:1px solid var(--border); color:var(--text);}
-  .pedido{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:12px;}
-  .pedido input[type=checkbox]{width:20px; height:20px; accent-color:var(--ok); flex-shrink:0;}
+  body{background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,sans-serif; margin:0; padding:0 0 60px;}
+  header{padding:28px 24px 20px; border-bottom:1px solid var(--border);}
+  h1{font-size:21px; margin:0 0 4px; font-weight:600;}
+  .sub{color:var(--muted); font-size:13px; margin:0;}
+  .toolbar{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;}
+  button{background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer; font-weight:500;}
+  button.secondary{background:var(--card2); border:1px solid var(--border); color:var(--text);}
+  button.small{padding:6px 10px; font-size:12px; border-radius:6px;}
+  #estado{font-size:13px; color:var(--accent2); margin-top:10px; min-height:16px;}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; padding:20px 24px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
+  .stat .num{font-size:22px; font-weight:600;}
+  .stat .lbl{font-size:12px; color:var(--muted); margin-top:2px;}
+
+  .filtros{display:flex; gap:8px; padding:0 24px 16px; flex-wrap:wrap;}
+  .filtros input, .filtros select{background:var(--card2); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; font-size:13px;}
+
+  main{padding:0 24px;}
+  .categoria{margin-bottom:14px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card);}
+  .cat-header{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; user-select:none;}
+  .cat-header:hover{background:var(--card2);}
+  .cat-title{font-size:14px; font-weight:600;}
+  .cat-count{font-size:12px; color:var(--muted); margin-left:8px; font-weight:400;}
+  .cat-total{font-size:13px; color:var(--accent2); font-weight:600;}
+  .cat-body{display:none; border-top:1px solid var(--border);}
+  .cat-body.open{display:block;}
+
+  .pedido{padding:14px 16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px;}
+  .pedido:last-child{border-bottom:none;}
+  .fila-principal{display:flex; align-items:center; gap:12px;}
+  .pedido input[type=checkbox]{width:19px; height:19px; accent-color:var(--ok); flex-shrink:0;}
   .info{flex:1; min-width:0;}
   .titulo{font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .meta{font-size:12px; color:var(--muted); margin-top:2px;}
-  .badge{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .badge{font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;}
   .badge.delivered{background:rgba(46,204,113,.15); color:var(--ok);}
   .badge.shipped{background:rgba(245,166,35,.15); color:var(--warn);}
-  .badge.pending{background:rgba(138,143,154,.15); color:var(--muted);}
+  .badge.pending{background:rgba(140,147,163,.15); color:var(--muted);}
   .badge.other{background:rgba(231,76,60,.15); color:var(--bad);}
-  #estado{font-size:13px; color:var(--muted); margin-bottom:16px;}
+  .toggle-contab{font-size:12px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; font-weight:500;}
+
+  .contab{display:none; background:var(--card2); border-radius:8px; padding:12px; gap:10px; flex-wrap:wrap; align-items:flex-end;}
+  .contab.open{display:flex;}
+  .campo{display:flex; flex-direction:column; gap:4px;}
+  .campo label{font-size:11px; color:var(--muted);}
+  .campo input[type=number], .campo input[type=text]{background:var(--card); border:1px solid var(--border); color:var(--text); padding:7px 8px; border-radius:6px; font-size:13px; width:120px;}
+  .campo.factura{flex-direction:row; align-items:center; gap:6px;}
+  .campo.factura label{font-size:12px; color:var(--text);}
+  .campo input[type=file]{font-size:11px; max-width:140px;}
+  .link-factura{font-size:12px; color:var(--accent2);}
+
+  .empty{color:var(--muted); font-size:13px; padding:40px 24px; text-align:center;}
 </style>
 </head>
 <body>
+<header>
   <h1>Mis Pedidos — Mercado Libre</h1>
-  <p class="sub">Conectado a tu cuenta. Se actualiza solo, o apretá "Actualizar" para forzar.</p>
-
+  <p class="sub">Se sincroniza con tu cuenta. Tildá cuando lo verificás recibido.</p>
   <div class="toolbar">
     <button id="btnConectar">Conectar cuenta de ML</button>
     <button id="btnSync" class="secondary">Actualizar ahora</button>
   </div>
   <div id="estado"></div>
-  <div id="lista"></div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<div class="filtros">
+  <input type="text" id="buscar" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+  <select id="filtroEstado">
+    <option value="">Todos los estados</option>
+    <option value="delivered">Entregado</option>
+    <option value="shipped">En camino</option>
+    <option value="pending">Pendiente</option>
+  </select>
+</div>
+
+<main id="lista"></main>
 
 <script>
-  // Reemplazado con los datos reales del proyecto Supabase de este sistema
   const SUPABASE_URL = 'https://uafheldlrloqypeelnyx.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZmhlbGRscmxvcXlwZWVsbnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNDI3MDksImV4cCI6MjEwMjgxODcwOX0.caJAisAp_BW2hTiEqQ3Lef9TbsJ_7caa5rFbY1x5978';
+  const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const estadoEl = document.getElementById('estado');
   const listaEl = document.getElementById('lista');
+  const statsEl = document.getElementById('stats');
+  let TODOS_LOS_PEDIDOS = [];
 
   document.getElementById('btnConectar').onclick = () => window.location.href = '/api/login';
 
   document.getElementById('btnSync').onclick = async () => {
-    estadoEl.textContent = 'Sincronizando con Mercado Libre...';
-    const resp = await fetch('/api/sync');
-    const data = await resp.json();
-    if (resp.ok) {
-      estadoEl.textContent = `Listo — ${data.guardados} pedidos actualizados.`;
-      cargarPedidos();
-    } else {
-      estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
+    estadoEl.textContent = 'Sincronizando con Mercado Libre (puede tardar si hay muchos pedidos)...';
+    try {
+      const resp = await fetch('/api/sync');
+      const data = await resp.json();
+      if (resp.ok) {
+        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados.`;
+        cargarPedidos();
+      } else {
+        estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
+      }
+    } catch (e) {
+      estadoEl.textContent = 'Error de red: ' + e.message;
     }
   };
+
+  document.getElementById('buscar').oninput = renderizar;
+  document.getElementById('filtroEstado').onchange = renderizar;
 
   function badgeClass(status) {
     if (status === 'delivered') return 'delivered';
@@ -71,41 +129,169 @@
     if (!status) return 'pending';
     return 'other';
   }
-
   function badgeLabel(status) {
     const map = {
       delivered: 'Entregado', shipped: 'En camino', ready_to_ship: 'Listo para enviar',
-      handling: 'Preparando', pending: 'Pendiente', not_delivered: 'No entregado',
-      cancelled: 'Cancelado',
+      handling: 'Preparando', pending: 'Pendiente', not_delivered: 'No entregado', cancelled: 'Cancelado',
     };
     return map[status] || (status || 'Sin envío');
   }
+  function fmtMoneda(n, moneda) {
+    if (n === null || n === undefined) return '-';
+    return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ' + (moneda || '');
+  }
 
-  async function cargarPedidos() {
-    const { data, error } = await db
-      .from('pedidos')
-      .select('*')
-      .order('fecha_creacion', { ascending: false });
+  function renderStats(pedidos) {
+    const total = pedidos.length;
+    const entregados = pedidos.filter(p => p.status_envio === 'delivered').length;
+    const enCamino = pedidos.filter(p => ['shipped','ready_to_ship','handling'].includes(p.status_envio)).length;
+    const gastoTotal = pedidos.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+    const sinFactura = pedidos.filter(p => !p.factura_adjunta).length;
 
-    if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
+    statsEl.innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="lbl">Pedidos totales</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${entregados}</div><div class="lbl">Entregados</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${enCamino}</div><div class="lbl">En camino</div></div>
+      <div class="stat"><div class="num">$${fmtMoneda(gastoTotal, '')}</div><div class="lbl">Gasto total (aprox)</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${sinFactura}</div><div class="lbl">Sin factura cargada</div></div>
+    `;
+  }
+
+  function agruparPorCategoria(pedidos) {
+    const grupos = {};
+    for (const p of pedidos) {
+      const cat = p.categoria_nombre || 'Sin categoría';
+      if (!grupos[cat]) grupos[cat] = [];
+      grupos[cat].push(p);
+    }
+    return grupos;
+  }
+
+  function renderizar() {
+    const busqueda = document.getElementById('buscar').value.toLowerCase();
+    const filtroEstado = document.getElementById('filtroEstado').value;
+
+    let pedidos = TODOS_LOS_PEDIDOS.filter(p => {
+      const matchBusqueda = !busqueda ||
+        (p.titulo || '').toLowerCase().includes(busqueda) ||
+        (p.vendedor_nickname || '').toLowerCase().includes(busqueda);
+      const matchEstado = !filtroEstado || badgeClass(p.status_envio) === filtroEstado;
+      return matchBusqueda && matchEstado;
+    });
+
+    renderStats(pedidos);
+
+    if (pedidos.length === 0) {
+      listaEl.innerHTML = '<div class="empty">No hay pedidos que coincidan con el filtro.</div>';
+      return;
+    }
+
+    const grupos = agruparPorCategoria(pedidos);
+    const catsOrdenadas = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);
 
     listaEl.innerHTML = '';
-    for (const p of data) {
-      const div = document.createElement('div');
-      div.className = 'pedido';
-      div.innerHTML = `
-        <input type="checkbox" ${p.verificado_por_mi ? 'checked' : ''} data-id="${p.order_id}" />
-        <div class="info">
-          <div class="titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-          <div class="meta">${p.vendedor_nickname || ''} · $${p.total} ${p.moneda} · ${new Date(p.fecha_creacion).toLocaleDateString('es-AR')}</div>
+    for (const cat of catsOrdenadas) {
+      const items = grupos[cat];
+      const totalCat = items.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+
+      const catDiv = document.createElement('div');
+      catDiv.className = 'categoria';
+      catDiv.innerHTML = `
+        <div class="cat-header">
+          <span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span>
+          <span class="cat-total">$${fmtMoneda(totalCat, '')}</span>
         </div>
-        <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+        <div class="cat-body"></div>
       `;
-      div.querySelector('input').onchange = async (e) => {
-        await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
-      };
-      listaEl.appendChild(div);
+      const header = catDiv.querySelector('.cat-header');
+      const body = catDiv.querySelector('.cat-body');
+      header.onclick = () => body.classList.toggle('open');
+
+      for (const p of items) {
+        const pedidoDiv = document.createElement('div');
+        pedidoDiv.className = 'pedido';
+        pedidoDiv.innerHTML = `
+          <div class="fila-principal">
+            <input type="checkbox" ${p.verificado_por_mi ? 'checked' : ''} />
+            <div class="info">
+              <div class="titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+              <div class="meta">${p.vendedor_nickname || ''} · $${fmtMoneda(p.total, p.moneda)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+            </div>
+            <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+            <button class="toggle-contab">Contabilidad</button>
+          </div>
+          <div class="contab">
+            <div class="campo">
+              <label>Precio de compra</label>
+              <input type="number" step="0.01" class="input-precio" value="${p.precio_compra ?? ''}" placeholder="0.00" />
+            </div>
+            <div class="campo">
+              <label>Notas</label>
+              <input type="text" class="input-notas" value="${p.notas ?? ''}" placeholder="opcional" />
+            </div>
+            <div class="campo factura">
+              <input type="checkbox" class="chk-factura" ${p.factura_adjunta ? 'checked' : ''} />
+              <label>Factura adjunta</label>
+            </div>
+            <div class="campo">
+              <label>Subir factura (PDF/foto)</label>
+              <input type="file" class="input-factura" accept=".pdf,image/*" />
+            </div>
+            ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver factura actual</a>` : ''}
+            <button class="small btn-guardar">Guardar</button>
+          </div>
+        `;
+
+        pedidoDiv.querySelector('input[type=checkbox]').onchange = async (e) => {
+          await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
+        };
+
+        pedidoDiv.querySelector('.toggle-contab').onclick = () => {
+          pedidoDiv.querySelector('.contab').classList.toggle('open');
+        };
+
+        pedidoDiv.querySelector('.btn-guardar').onclick = async (e) => {
+          const btn = e.target;
+          btn.textContent = 'Guardando...';
+          const precio = pedidoDiv.querySelector('.input-precio').value;
+          const notas = pedidoDiv.querySelector('.input-notas').value;
+          const facturaCheck = pedidoDiv.querySelector('.chk-factura').checked;
+          const archivo = pedidoDiv.querySelector('.input-factura').files[0];
+
+          let facturaUrl = p.factura_url || null;
+          if (archivo) {
+            const nombreArchivo = `${p.order_id}_${Date.now()}_${archivo.name}`;
+            const { error: uploadErr } = await db.storage.from('facturas').upload(nombreArchivo, archivo);
+            if (!uploadErr) {
+              const { data: pub } = db.storage.from('facturas').getPublicUrl(nombreArchivo);
+              facturaUrl = pub.publicUrl;
+            } else {
+              alert('Error subiendo factura: ' + uploadErr.message + ' (¿creaste el bucket "facturas" en Supabase Storage?)');
+            }
+          }
+
+          await db.from('pedidos').update({
+            precio_compra: precio ? Number(precio) : null,
+            notas: notas || null,
+            factura_adjunta: facturaCheck,
+            factura_url: facturaUrl,
+          }).eq('order_id', p.order_id);
+
+          btn.textContent = 'Guardado ✓';
+          setTimeout(() => cargarPedidos(), 600);
+        };
+
+        body.appendChild(pedidoDiv);
+      }
+      listaEl.appendChild(catDiv);
     }
+  }
+
+  async function cargarPedidos() {
+    const { data, error } = await db.from('pedidos').select('*').order('fecha_creacion', { ascending: false });
+    if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
+    TODOS_LOS_PEDIDOS = data || [];
+    renderizar();
   }
 
   cargarPedidos();
