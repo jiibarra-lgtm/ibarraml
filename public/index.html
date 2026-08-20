@@ -10,22 +10,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --indigo:#4f46e5; --indigo-d:#3730a3; --teal:#0d9488; --teal-l:#14b8a6;
-    --bg:#f6f7fb; --card:#ffffff; --border:#e4e6ef; --text:#1c1f2b; --muted:#6b7086;
-    --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
-    --radius:12px;
+    --indigo:#4f46e5; --indigo-d:#3730a3; --indigo-l:#eef2ff; --teal:#0d9488; --teal-l:#14b8a6;
+    --bg:#f6f7fb; --sidebar:#ffffff; --card:#ffffff; --border:#e7e8f0; --text:#1c1f2b; --muted:#767b8f;
+    --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --radius:10px;
   }
   [data-theme="dark"]{
-    --bg:#11131c; --card:#181b27; --border:#2a2e3d; --text:#eceef5; --muted:#8a8fa3;
+    --bg:#0f1117; --sidebar:#151822; --card:#181b27; --border:#282c3a; --text:#eceef5; --muted:#8a8fa3; --indigo-l:#1e1f3a;
   }
   *{box-sizing:border-box;}
-  body{background:var(--bg); color:var(--text); font-family:'Archivo',sans-serif; margin:0; transition:background .2s;}
+  body{background:var(--bg); color:var(--text); font-family:'Archivo',sans-serif; margin:0;}
   code, .mono{font-family:'Spline Sans Mono',monospace;}
   h1,h2,h3{font-weight:600; margin:0;}
   button{font-family:inherit; cursor:pointer; border:none; border-radius:8px; font-weight:500;}
   input,select{font-family:inherit;}
 
-  /* --- Login gate --- */
   #gate{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100;}
   .gate-box{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:32px; width:280px; text-align:center;}
   .gate-box h2{margin-bottom:6px;}
@@ -34,25 +32,41 @@
   .gate-box button{width:100%; background:var(--indigo); color:#fff; padding:10px; font-size:14px;}
   .gate-error{color:var(--bad); font-size:12px; min-height:16px; margin-bottom:6px;}
 
-  /* --- Layout --- */
-  #app{display:none; max-width:1100px; margin:0 auto; padding:0 20px 60px;}
-  header{padding:24px 0 16px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
-  .brand{display:flex; align-items:center; gap:10px;}
-  .brand .dot{width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,var(--indigo),var(--teal-l));}
-  .brand h1{font-size:19px;}
-  .brand .sub{color:var(--muted); font-size:12px; margin-top:2px;}
-  .header-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  #shell{display:none; grid-template-columns:230px 1fr; min-height:100vh;}
+  [data-app-visible="1"] #shell{display:grid;}
+
+  /* --- Sidebar --- */
+  aside{background:var(--sidebar); border-right:1px solid var(--border); padding:18px 12px; display:flex; flex-direction:column;}
+  .brand{display:flex; align-items:center; gap:10px; padding:6px 8px 20px;}
+  .brand .logo{width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--indigo),var(--teal-l)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px;}
+  .brand-text b{display:block; font-size:14px;}
+  .brand-text span{display:block; font-size:10px; color:var(--indigo); font-weight:600; letter-spacing:.04em;}
+
+  nav{flex:1;}
+  .nav-section{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); padding:14px 10px 6px;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer; margin-bottom:2px;}
+  .nav-item:hover{background:var(--bg);}
+  .nav-item.active{background:var(--indigo-l); color:var(--indigo); font-weight:600;}
+  .nav-item .ic{width:16px; text-align:center; font-size:14px;}
+
+  .sidebar-footer{border-top:1px solid var(--border); padding-top:10px; display:flex; gap:8px;}
+  .sidebar-footer button{flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px; font-size:12px;}
+
+  /* --- Main content --- */
+  main{padding:24px 28px 60px; max-width:1100px;}
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+  .topbar h1{font-size:19px;}
+  .topbar .sub{color:var(--muted); font-size:12px; margin-top:2px;}
+  .topbar-actions{display:flex; gap:8px;}
   .btn{padding:9px 14px; font-size:13px; border-radius:8px;}
   .btn-primary{background:var(--indigo); color:#fff;}
   .btn-primary:hover{background:var(--indigo-d);}
-  .btn-outline{background:transparent; border:1px solid var(--border); color:var(--text);}
-  .btn-outline:hover{background:var(--card);}
-  .btn-icon{width:34px; height:34px; padding:0; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px;}
-  #estado{font-size:12px; color:var(--teal); margin-top:6px; min-height:14px;}
+  .btn-outline{background:var(--card); border:1px solid var(--border); color:var(--text);}
+  .btn-outline:hover{background:var(--indigo-l);}
+  #estado{font-size:12px; color:var(--teal); margin-bottom:14px; min-height:14px;}
 
-  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px;}
-  .tab{padding:10px 4px; font-size:13px; color:var(--muted); background:none; border-bottom:2px solid transparent; border-radius:0; margin-right:16px;}
-  .tab.active{color:var(--indigo); border-bottom-color:var(--indigo); font-weight:600;}
+  .pagina{display:none;}
+  .pagina.activa{display:block;}
 
   .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px;}
   .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;}
@@ -85,7 +99,7 @@
   .badge{font-size:10px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;}
   .badge.delivered{background:rgba(22,163,74,.12); color:var(--ok);}
   .badge.shipped{background:rgba(217,119,6,.12); color:var(--warn);}
-  .badge.pending{background:rgba(107,112,134,.12); color:var(--muted);}
+  .badge.pending{background:rgba(118,123,143,.12); color:var(--muted);}
   .badge.other{background:rgba(220,38,38,.12); color:var(--bad);}
   .toggle-contab{font-size:11px; color:var(--indigo); background:none; padding:0;}
 
@@ -101,9 +115,8 @@
 
   .empty{color:var(--muted); font-size:13px; padding:40px 24px; text-align:center;}
 
-  /* --- Reportes --- */
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
-  @media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+  @media(max-width:800px){.grid2{grid-template-columns:1fr;} #shell{grid-template-columns:1fr;} aside{display:none;}}
   .panel{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
   .panel h3{font-size:13px; margin-bottom:12px;}
   .panel-chart{position:relative; height:220px;}
@@ -112,10 +125,12 @@
   table.reporte td{padding:6px 4px; border-bottom:1px solid var(--border);}
   table.reporte tr:last-child td{border-bottom:none;}
   .config-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
-  .config-row .campo input{width:90px;}
+  .config-row .campo input{width:120px;}
+  .recientes-item{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .recientes-item:last-child{border-bottom:none;}
 </style>
 </head>
-<body data-theme="dark">
+<body>
 
 <div id="gate">
   <div class="gate-box">
@@ -127,92 +142,126 @@
   </div>
 </div>
 
-<div id="app">
-  <header>
+<div id="shell">
+  <aside>
     <div class="brand">
-      <div class="dot"></div>
+      <div class="logo">I</div>
+      <div class="brand-text"><b>Ibarra</b><span>PEDIDOS ML</span></div>
+    </div>
+    <nav>
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" data-pagina="inicio"><span class="ic">◈</span> Inicio</div>
+      <div class="nav-item" data-pagina="pedidos"><span class="ic">▤</span> Pedidos</div>
+
+      <div class="nav-section">Reportes</div>
+      <div class="nav-item" data-pagina="graficos"><span class="ic">◔</span> Gráficos</div>
+      <div class="nav-item" data-pagina="productos"><span class="ic">▥</span> Top productos</div>
+      <div class="nav-item" data-pagina="pagos"><span class="ic">$</span> Método de pago</div>
+      <div class="nav-item" data-pagina="rubros"><span class="ic">▦</span> Rubros</div>
+      <div class="nav-item" data-pagina="conciliacion"><span class="ic">✓</span> Conciliación</div>
+
+      <div class="nav-section">Sistema</div>
+      <div class="nav-item" data-pagina="config"><span class="ic">⚙</span> Configuración</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="btnTheme">◐ Tema</button>
+      <button id="btnLogout">⎋ Salir</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
       <div>
-        <h1>Pedidos — Ibarra Insumos</h1>
+        <h1 id="tituloPagina">Inicio</h1>
         <div class="sub">Compras en Mercado Libre, sincronizadas y ordenadas.</div>
       </div>
-    </div>
-    <div class="header-actions">
-      <button class="btn-icon" id="btnTheme" title="Cambiar tema">◐</button>
-      <button class="btn btn-outline" id="btnConectar">Conectar ML</button>
-      <button class="btn btn-primary" id="btnSync">Actualizar ahora</button>
-      <button class="btn-icon" id="btnLogout" title="Salir">⎋</button>
-    </div>
-  </header>
-  <div id="estado"></div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="pedidos">Pedidos</button>
-    <button class="tab" data-tab="reportes">Reportes</button>
-  </div>
-
-  <div id="tab-pedidos">
-    <div class="stats" id="stats"></div>
-    <div class="alertas" id="alertas"></div>
-    <div class="filtros">
-      <input type="text" id="buscar" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
-      <select id="filtroEstado">
-        <option value="">Todos los estados</option>
-        <option value="delivered">Entregado</option>
-        <option value="shipped">En camino</option>
-        <option value="pending">Pendiente</option>
-      </select>
-    </div>
-    <main id="lista"></main>
-  </div>
-
-  <div id="tab-reportes" style="display:none;">
-    <div class="config-row panel">
-      <div class="campo"><label>Alerta sin factura (días)</label><input type="number" id="cfgDiasFactura" /></div>
-      <div class="campo"><label>Alerta monto alto</label><input type="number" id="cfgMontoAlerta" /></div>
-      <button class="btn btn-outline" id="btnGuardarConfig" style="align-self:flex-end;">Guardar</button>
-      <button class="btn btn-outline" id="btnExportar" style="align-self:flex-end; margin-left:auto;">Exportar CSV</button>
-    </div>
-
-    <div class="stats" id="statsReportes"></div>
-
-    <div class="grid2">
-      <div class="panel">
-        <h3>Gasto por categoría</h3>
-        <div class="panel-chart"><canvas id="chartCategoria"></canvas></div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" id="btnConectar">Conectar ML</button>
+        <button class="btn btn-primary" id="btnSync">Actualizar ahora</button>
       </div>
+    </div>
+    <div id="estado"></div>
+
+    <!-- INICIO -->
+    <div class="pagina activa" id="pagina-inicio">
+      <div class="stats" id="statsInicio"></div>
+      <div class="alertas" id="alertasInicio"></div>
       <div class="panel">
-        <h3>Gasto por mes</h3>
-        <div class="panel-chart"><canvas id="chartMes"></canvas></div>
+        <h3>Últimos pedidos</h3>
+        <div id="recientes"></div>
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="panel">
-        <h3>Top 10 productos (por nombre general)</h3>
-        <table class="reporte" id="tablaTop"></table>
+    <!-- PEDIDOS -->
+    <div class="pagina" id="pagina-pedidos">
+      <div class="stats" id="stats"></div>
+      <div class="alertas" id="alertas"></div>
+      <div class="filtros">
+        <input type="text" id="buscar" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+        <select id="filtroEstado">
+          <option value="">Todos los estados</option>
+          <option value="delivered">Entregado</option>
+          <option value="shipped">En camino</option>
+          <option value="pending">Pendiente</option>
+        </select>
       </div>
-      <div class="panel">
-        <h3>Gasto por método de pago</h3>
-        <table class="reporte" id="tablaMetodoPago"></table>
+      <div id="lista"></div>
+    </div>
+
+    <!-- GRAFICOS -->
+    <div class="pagina" id="pagina-graficos">
+      <div class="stats" id="statsReportes"></div>
+      <div class="grid2">
+        <div class="panel"><h3>Gasto por categoría</h3><div class="panel-chart"><canvas id="chartCategoria"></canvas></div></div>
+        <div class="panel"><h3>Gasto por mes</h3><div class="panel-chart"><canvas id="chartMes"></canvas></div></div>
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="panel">
-        <h3>Gasto por rubro</h3>
-        <table class="reporte" id="tablaRubro"></table>
-      </div>
-      <div class="panel">
-        <h3>Deducible vs. no deducible</h3>
-        <table class="reporte" id="tablaDeducible"></table>
+    <!-- TOP PRODUCTOS -->
+    <div class="pagina" id="pagina-productos">
+      <div class="panel"><h3>Top 10 productos (por nombre general)</h3><table class="reporte" id="tablaTop"></table></div>
+    </div>
+
+    <!-- METODO DE PAGO -->
+    <div class="pagina" id="pagina-pagos">
+      <div class="panel"><h3>Gasto por método de pago</h3><table class="reporte" id="tablaMetodoPago"></table></div>
+    </div>
+
+    <!-- RUBROS -->
+    <div class="pagina" id="pagina-rubros">
+      <div class="grid2">
+        <div class="panel"><h3>Gasto por rubro</h3><table class="reporte" id="tablaRubro"></table></div>
+        <div class="panel"><h3>Deducible vs. no deducible</h3><table class="reporte" id="tablaDeducible"></table></div>
       </div>
     </div>
-  </div>
+
+    <!-- CONCILIACION -->
+    <div class="pagina" id="pagina-conciliacion">
+      <div class="panel"><h3>Conciliación con Cotizador</h3><table class="reporte" id="tablaConciliacion"></table></div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="pagina" id="pagina-config">
+      <div class="panel">
+        <h3>Alertas</h3>
+        <div class="config-row">
+          <div class="campo"><label>Alerta sin factura (días)</label><input type="number" id="cfgDiasFactura" /></div>
+          <div class="campo"><label>Alerta monto alto</label><input type="number" id="cfgMontoAlerta" /></div>
+          <button class="btn btn-outline" id="btnGuardarConfig" style="align-self:flex-end;">Guardar</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Exportar</h3>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Descargá todos los pedidos con su info contable en un CSV para tu contador.</p>
+        <button class="btn btn-primary" id="btnExportar">Exportar CSV</button>
+      </div>
+    </div>
+  </main>
 </div>
 
 <script>
   const SUPABASE_URL = 'https://uafheldlrloqypeelnyx.supabase.co';
-  const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZmhlbGRscmxvcXlwZWVsbnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNDI3MDksImV4cCI6MjEwMjgxODcwOX0.caJAisAp_BW2hTiEqQ3Lef9TbsJ_7caa5rFbY1x5978';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /* ---------- LOGIN GATE ---------- */
@@ -220,35 +269,27 @@
   function tokenValido() {
     const t = localStorage.getItem(TOKEN_KEY);
     if (!t) return false;
-    try {
-      const decoded = atob(t);
-      const expira = Number(decoded.split('.')[0]);
-      return Date.now() < expira;
-    } catch { return false; }
+    try { const d = atob(t); return Date.now() < Number(d.split('.')[0]); } catch { return false; }
   }
   function mostrarApp() {
     document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.body.setAttribute('data-app-visible', '1');
     init();
   }
-  if (tokenValido()) {
-    mostrarApp();
-  }
+  if (tokenValido()) mostrarApp();
+
   document.getElementById('gateBtn').onclick = async () => {
     const pass = document.getElementById('gatePass').value;
     const errEl = document.getElementById('gateError');
     errEl.textContent = '';
     if (!pass) { errEl.textContent = 'Ingresá la contraseña'; return; }
     try {
-      const resp = await fetch('/api/auth', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass }),
-      });
+      const resp = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
       const data = await resp.json();
       if (!resp.ok) { errEl.textContent = data.error || 'Error'; return; }
       localStorage.setItem(TOKEN_KEY, data.token);
       mostrarApp();
-    } catch (e) { errEl.textContent = 'Error de red'; }
+    } catch { errEl.textContent = 'Error de red'; }
   };
   document.getElementById('gatePass').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('gateBtn').click(); };
   document.getElementById('btnLogout').onclick = () => { localStorage.removeItem(TOKEN_KEY); location.reload(); };
@@ -259,14 +300,18 @@
     document.body.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
   };
 
-  /* ---------- TABS ---------- */
-  document.querySelectorAll('.tab').forEach(t => {
-    t.onclick = () => {
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
-      document.getElementById('tab-pedidos').style.display = t.dataset.tab === 'pedidos' ? 'block' : 'none';
-      document.getElementById('tab-reportes').style.display = t.dataset.tab === 'reportes' ? 'block' : 'none';
-      if (t.dataset.tab === 'reportes') renderReportes();
+  /* ---------- NAV SIDEBAR ---------- */
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', config:'Configuración' };
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.onclick = () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.pagina').forEach(p => p.classList.remove('activa'));
+      const pag = item.dataset.pagina;
+      document.getElementById('pagina-' + pag).classList.add('activa');
+      document.getElementById('tituloPagina').textContent = nombresPagina[pag];
+      if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
+      if (pag === 'inicio') renderInicio();
     };
   });
 
@@ -274,7 +319,6 @@
   let TODOS = [];
   let CONFIG = { dias_alerta_factura: 7, monto_alerta: 100000 };
   let chartCat, chartMes;
-
   const estadoEl = document.getElementById('estado');
 
   document.getElementById('btnConectar').onclick = () => window.location.href = '/api/login';
@@ -285,15 +329,12 @@
       const resp = await fetch('/api/sync');
       const data = await resp.json();
       if (resp.ok) {
-        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados. (última sync: ${new Date().toLocaleTimeString('es-AR')})`;
+        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados. (${new Date().toLocaleTimeString('es-AR')})`;
         cargarPedidos();
-      } else if (!silencioso) {
-        estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
-      }
+      } else if (!silencioso) estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
     } catch (e) { if (!silencioso) estadoEl.textContent = 'Error de red: ' + e.message; }
   }
   document.getElementById('btnSync').onclick = () => sincronizar(false);
-
   document.getElementById('buscar').oninput = renderizarPedidos;
   document.getElementById('filtroEstado').onchange = renderizarPedidos;
 
@@ -311,31 +352,49 @@
     if (n === null || n === undefined || isNaN(n)) return '-';
     return '$' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
   }
-  function nombreGenerico(p) {
-    return p.producto_generico || p.categoria_nombre || 'Sin nombre';
+  function nombreGenerico(p) { return p.producto_generico || p.categoria_nombre || 'Sin nombre'; }
+  function montoReal(p) {
+    const t = Number(p.total) || 0;
+    if (p.moneda_original && p.tipo_cambio) return t * Number(p.tipo_cambio);
+    return t;
   }
 
-  /* ---------- ALERTAS ---------- */
-  function renderAlertas(pedidos) {
-    const cont = document.getElementById('alertas');
+  /* ---------- INICIO ---------- */
+  function renderInicio() {
+    const pedidos = TODOS;
+    const total = pedidos.length;
+    const entregados = pedidos.filter(p => p.status_envio === 'delivered').length;
+    const enCamino = pedidos.filter(p => ['shipped','ready_to_ship','handling'].includes(p.status_envio)).length;
+    const gastoTotal = pedidos.reduce((a,p)=>a+(montoReal(p)||0),0);
+    document.getElementById('statsInicio').innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="lbl">Pedidos totales</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${entregados}</div><div class="lbl">Entregados</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${enCamino}</div><div class="lbl">En camino</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto total</div></div>
+    `;
+    renderAlertas(pedidos, 'alertasInicio');
+
+    const recientesEl = document.getElementById('recientes');
+    const ultimos = [...pedidos].sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).slice(0, 8);
+    recientesEl.innerHTML = ultimos.length ? ultimos.map(p => `
+      <div class="recientes-item">
+        <span>${p.titulo || 'Pedido #' + p.order_id}</span>
+        <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+      </div>`).join('') : '<div class="empty">Todavía no hay pedidos sincronizados.</div>';
+  }
+
+  /* ---------- ALERTAS (reutilizable) ---------- */
+  function renderAlertas(pedidos, targetId) {
+    const cont = document.getElementById(targetId);
     cont.innerHTML = '';
     const ahora = Date.now();
-    const sinFactura = pedidos.filter(p => !p.factura_adjunta && p.fecha_creacion &&
-      (ahora - new Date(p.fecha_creacion).getTime()) / 86400000 > CONFIG.dias_alerta_factura);
-    const montoAlto = pedidos.filter(p => Number(p.total) > CONFIG.monto_alerta);
+    const sinFactura = pedidos.filter(p => !p.factura_adjunta && p.fecha_creacion && (ahora - new Date(p.fecha_creacion).getTime())/86400000 > CONFIG.dias_alerta_factura);
+    const montoAlto = pedidos.filter(p => montoReal(p) > CONFIG.monto_alerta);
+    const entregadosSinConciliar = pedidos.filter(p => p.status_envio === 'delivered' && p.cargado_en_cotizador !== true);
 
-    if (sinFactura.length) {
-      const div = document.createElement('div');
-      div.className = 'alerta';
-      div.textContent = `${sinFactura.length} pedido(s) llevan más de ${CONFIG.dias_alerta_factura} días sin factura cargada.`;
-      cont.appendChild(div);
-    }
-    if (montoAlto.length) {
-      const div = document.createElement('div');
-      div.className = 'alerta bad';
-      div.textContent = `${montoAlto.length} pedido(s) superan el monto de alerta (${fmtMoneda(CONFIG.monto_alerta)}).`;
-      cont.appendChild(div);
-    }
+    if (sinFactura.length) cont.insertAdjacentHTML('beforeend', `<div class="alerta">${sinFactura.length} pedido(s) llevan más de ${CONFIG.dias_alerta_factura} días sin factura cargada.</div>`);
+    if (montoAlto.length) cont.insertAdjacentHTML('beforeend', `<div class="alerta bad">${montoAlto.length} pedido(s) superan el monto de alerta (${fmtMoneda(CONFIG.monto_alerta)}).</div>`);
+    if (entregadosSinConciliar.length) cont.insertAdjacentHTML('beforeend', `<div class="alerta">${entregadosSinConciliar.length} pedido(s) entregados sin cargar en el Cotizador.</div>`);
   }
 
   /* ---------- STATS PEDIDOS ---------- */
@@ -343,7 +402,7 @@
     const total = pedidos.length;
     const entregados = pedidos.filter(p => p.status_envio === 'delivered').length;
     const enCamino = pedidos.filter(p => ['shipped','ready_to_ship','handling'].includes(p.status_envio)).length;
-    const gastoTotal = pedidos.reduce((a,p) => a + (Number(p.total)||0), 0);
+    const gastoTotal = pedidos.reduce((a,p)=>a+(montoReal(p)||0),0);
     const sinFactura = pedidos.filter(p => !p.factura_adjunta).length;
     document.getElementById('stats').innerHTML = `
       <div class="stat"><div class="num">${total}</div><div class="lbl">Pedidos totales</div></div>
@@ -364,7 +423,7 @@
       return matchBusqueda && matchEstado;
     });
     renderStats(pedidos);
-    renderAlertas(pedidos);
+    renderAlertas(pedidos, 'alertas');
 
     const listaEl = document.getElementById('lista');
     if (!pedidos.length) { listaEl.innerHTML = '<div class="empty">No hay pedidos que coincidan.</div>'; return; }
@@ -376,14 +435,13 @@
     listaEl.innerHTML = '';
     for (const cat of cats) {
       const items = grupos[cat];
-      const totalCat = items.reduce((a,p)=>a+(Number(p.total)||0),0);
+      const totalCat = items.reduce((a,p)=>a+(montoReal(p)||0),0);
       const catDiv = document.createElement('div');
       catDiv.className = 'categoria';
       catDiv.innerHTML = `<div class="cat-header"><span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span><span class="cat-total">${fmtMoneda(totalCat)}</span></div><div class="cat-body"></div>`;
       const header = catDiv.querySelector('.cat-header');
       const body = catDiv.querySelector('.cat-body');
       header.onclick = () => body.classList.toggle('open');
-
       for (const p of items) body.appendChild(renderPedido(p));
       listaEl.appendChild(catDiv);
     }
@@ -405,7 +463,7 @@
       <div class="contab">
         <div class="campo"><label>Precio de compra</label><input type="number" step="0.01" class="c-precio" value="${p.precio_compra??''}" /></div>
         <div class="campo"><label>Rubro</label><input type="text" class="c-rubro" value="${p.rubro??''}" placeholder="ej: limpieza" /></div>
-        <div class="campo"><label>Nombre general (para ranking)</label><input type="text" class="c-generico" value="${p.producto_generico??''}" placeholder="ej: guantes nitrilo" /></div>
+        <div class="campo"><label>Nombre general (ranking)</label><input type="text" class="c-generico" value="${p.producto_generico??''}" placeholder="ej: guantes nitrilo" /></div>
         <div class="campo"><label>IVA (monto)</label><input type="number" step="0.01" class="c-iva" value="${p.iva_monto??''}" /></div>
         <div class="campo"><label>Moneda orig.</label><input type="text" class="c-monedaorig" value="${p.moneda_original??''}" placeholder="USD" /></div>
         <div class="campo"><label>Tipo de cambio</label><input type="number" step="0.01" class="c-tc" value="${p.tipo_cambio??''}" /></div>
@@ -424,7 +482,6 @@
       await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
     };
     div.querySelector('.toggle-contab').onclick = () => div.querySelector('.contab').classList.toggle('open');
-
     div.querySelector('.c-guardar').onclick = async (e) => {
       const btn = e.target; btn.textContent = 'Guardando...';
       const archivo = div.querySelector('.c-archivo').files[0];
@@ -455,15 +512,13 @@
     return div;
   }
 
-  /* ---------- REPORTES ---------- */
+  /* ---------- REPORTES (gráficos + tablas, repartido en varias páginas del sidebar) ---------- */
   function renderReportes() {
     const pedidos = TODOS;
-    const gastoTotal = pedidos.reduce((a,p)=>a+(Number(p.total)||0),0);
-
-    // Mes actual y proyección
+    const gastoTotal = pedidos.reduce((a,p)=>a+(montoReal(p)||0),0);
     const ahora = new Date();
     const mesActual = pedidos.filter(p => p.fecha_creacion && new Date(p.fecha_creacion).getMonth() === ahora.getMonth() && new Date(p.fecha_creacion).getFullYear() === ahora.getFullYear());
-    const gastoMesActual = mesActual.reduce((a,p)=>a+(Number(p.total)||0),0);
+    const gastoMesActual = mesActual.reduce((a,p)=>a+(montoReal(p)||0),0);
     const diasTranscurridos = ahora.getDate();
     const diasDelMes = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0).getDate();
     const proyeccion = diasTranscurridos > 0 ? (gastoMesActual / diasTranscurridos) * diasDelMes : 0;
@@ -475,9 +530,8 @@
       <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Pedidos totales</div></div>
     `;
 
-    // Gasto por categoría (pie)
     const porCat = {};
-    pedidos.forEach(p => { const c = p.categoria_nombre || 'Sin categoría'; porCat[c] = (porCat[c]||0) + (Number(p.total)||0); });
+    pedidos.forEach(p => { const c = p.categoria_nombre || 'Sin categoría'; porCat[c] = (porCat[c]||0) + (montoReal(p)||0); });
     const catLabels = Object.keys(porCat).sort((a,b)=>porCat[b]-porCat[a]).slice(0,8);
     if (chartCat) chartCat.destroy();
     chartCat = new Chart(document.getElementById('chartCategoria'), {
@@ -486,14 +540,8 @@
       options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 
-    // Gasto por mes (bar, últimos 12 meses)
     const porMes = {};
-    pedidos.forEach(p => {
-      if (!p.fecha_creacion) return;
-      const d = new Date(p.fecha_creacion);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      porMes[key] = (porMes[key]||0) + (Number(p.total)||0);
-    });
+    pedidos.forEach(p => { if (!p.fecha_creacion) return; const d = new Date(p.fecha_creacion); const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; porMes[key] = (porMes[key]||0) + (montoReal(p)||0); });
     const mesesOrdenados = Object.keys(porMes).sort().slice(-12);
     if (chartMes) chartMes.destroy();
     chartMes = new Chart(document.getElementById('chartMes'), {
@@ -502,47 +550,40 @@
       options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
     });
 
-    // Top 10 productos por nombre genérico
     const porGenerico = {};
-    pedidos.forEach(p => { const n = nombreGenerico(p); (porGenerico[n] = porGenerico[n] || { cant: 0, gasto: 0 }); porGenerico[n].cant++; porGenerico[n].gasto += Number(p.total)||0; });
+    pedidos.forEach(p => { const n = nombreGenerico(p); (porGenerico[n] = porGenerico[n] || { cant: 0, gasto: 0 }); porGenerico[n].cant++; porGenerico[n].gasto += montoReal(p)||0; });
     const topGenericos = Object.keys(porGenerico).sort((a,b)=>porGenerico[b].cant - porGenerico[a].cant).slice(0,10);
-    document.getElementById('tablaTop').innerHTML = `<tr><th>Producto</th><th>Compras</th><th>Gasto</th></tr>` +
-      topGenericos.map(n => `<tr><td>${n}</td><td>${porGenerico[n].cant}</td><td>${fmtMoneda(porGenerico[n].gasto)}</td></tr>`).join('');
+    document.getElementById('tablaTop').innerHTML = `<tr><th>Producto</th><th>Compras</th><th>Gasto</th></tr>` + topGenericos.map(n => `<tr><td>${n}</td><td>${porGenerico[n].cant}</td><td>${fmtMoneda(porGenerico[n].gasto)}</td></tr>`).join('');
 
-    // Gasto por método de pago
     const porMetodo = {};
-    pedidos.forEach(p => { const m = p.metodo_pago || 'No informado'; porMetodo[m] = (porMetodo[m]||0) + (Number(p.total)||0); });
-    document.getElementById('tablaMetodoPago').innerHTML = `<tr><th>Método</th><th>Gasto</th></tr>` +
-      Object.keys(porMetodo).sort((a,b)=>porMetodo[b]-porMetodo[a]).map(m => `<tr><td>${m}</td><td>${fmtMoneda(porMetodo[m])}</td></tr>`).join('');
+    pedidos.forEach(p => { const m = p.metodo_pago || 'No informado'; porMetodo[m] = (porMetodo[m]||0) + (montoReal(p)||0); });
+    document.getElementById('tablaMetodoPago').innerHTML = `<tr><th>Método</th><th>Gasto</th></tr>` + Object.keys(porMetodo).sort((a,b)=>porMetodo[b]-porMetodo[a]).map(m => `<tr><td>${m}</td><td>${fmtMoneda(porMetodo[m])}</td></tr>`).join('');
 
-    // Gasto por rubro
     const porRubro = {};
-    pedidos.forEach(p => { const r = p.rubro || 'Sin rubro'; porRubro[r] = (porRubro[r]||0) + (Number(p.total)||0); });
-    document.getElementById('tablaRubro').innerHTML = `<tr><th>Rubro</th><th>Gasto</th></tr>` +
-      Object.keys(porRubro).sort((a,b)=>porRubro[b]-porRubro[a]).map(r => `<tr><td>${r}</td><td>${fmtMoneda(porRubro[r])}</td></tr>`).join('');
+    pedidos.forEach(p => { const r = p.rubro || 'Sin rubro'; porRubro[r] = (porRubro[r]||0) + (montoReal(p)||0); });
+    document.getElementById('tablaRubro').innerHTML = `<tr><th>Rubro</th><th>Gasto</th></tr>` + Object.keys(porRubro).sort((a,b)=>porRubro[b]-porRubro[a]).map(r => `<tr><td>${r}</td><td>${fmtMoneda(porRubro[r])}</td></tr>`).join('');
 
-    // Deducible vs no deducible
-    const deducible = pedidos.filter(p=>p.deducible===true).reduce((a,p)=>a+(Number(p.total)||0),0);
-    const noDeducible = pedidos.filter(p=>p.deducible===false).reduce((a,p)=>a+(Number(p.total)||0),0);
-    const sinClasificar = pedidos.filter(p=>p.deducible===null||p.deducible===undefined).reduce((a,p)=>a+(Number(p.total)||0),0);
-    document.getElementById('tablaDeducible').innerHTML = `<tr><th>Tipo</th><th>Gasto</th></tr>
-      <tr><td>Deducible</td><td>${fmtMoneda(deducible)}</td></tr>
-      <tr><td>No deducible</td><td>${fmtMoneda(noDeducible)}</td></tr>
-      <tr><td>Sin clasificar</td><td>${fmtMoneda(sinClasificar)}</td></tr>`;
+    const deducible = pedidos.filter(p=>p.deducible===true).reduce((a,p)=>a+(montoReal(p)||0),0);
+    const noDeducible = pedidos.filter(p=>p.deducible===false).reduce((a,p)=>a+(montoReal(p)||0),0);
+    const sinClasificar = pedidos.filter(p=>p.deducible===null||p.deducible===undefined).reduce((a,p)=>a+(montoReal(p)||0),0);
+    document.getElementById('tablaDeducible').innerHTML = `<tr><th>Tipo</th><th>Gasto</th></tr><tr><td>Deducible</td><td>${fmtMoneda(deducible)}</td></tr><tr><td>No deducible</td><td>${fmtMoneda(noDeducible)}</td></tr><tr><td>Sin clasificar</td><td>${fmtMoneda(sinClasificar)}</td></tr>`;
+
+    const cargados = pedidos.filter(p => p.cargado_en_cotizador === true);
+    const pendientes = pedidos.filter(p => p.cargado_en_cotizador !== true);
+    document.getElementById('tablaConciliacion').innerHTML = `<tr><th>Estado</th><th>Cantidad</th><th>Monto</th></tr>
+      <tr><td>Ya cargados en Cotizador</td><td>${cargados.length}</td><td>${fmtMoneda(cargados.reduce((a,p)=>a+(montoReal(p)||0),0))}</td></tr>
+      <tr><td>Pendientes de cargar</td><td>${pendientes.length}</td><td>${fmtMoneda(pendientes.reduce((a,p)=>a+(montoReal(p)||0),0))}</td></tr>`;
   }
 
   document.getElementById('btnExportar').onclick = () => {
-    const headers = ['order_id','titulo','categoria','vendedor','total','moneda','precio_compra','rubro','metodo_pago','deducible','factura_adjunta','fecha_creacion','status_envio'];
+    const headers = ['order_id','titulo','categoria_nombre','vendedor_nickname','total','moneda','precio_compra','rubro','metodo_pago','deducible','factura_adjunta','fecha_creacion','status_envio'];
     const filas = TODOS.map(p => headers.map(h => `"${String(p[h]??'').replace(/"/g,'""')}"`).join(','));
     const csv = [headers.join(','), ...filas].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `pedidos_ml_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `pedidos_ml_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   };
 
-  /* ---------- CONFIG ---------- */
   async function cargarConfig() {
     const { data } = await db.from('config').select('*').eq('id', 1).single();
     if (data) {
@@ -556,24 +597,23 @@
     const monto = Number(document.getElementById('cfgMontoAlerta').value) || 100000;
     await db.from('config').update({ dias_alerta_factura: dias, monto_alerta: monto }).eq('id', 1);
     CONFIG.dias_alerta_factura = dias; CONFIG.monto_alerta = monto;
-    renderizarPedidos();
+    renderizarPedidos(); renderInicio();
     alert('Configuración guardada');
   };
 
-  /* ---------- CARGA ---------- */
   async function cargarPedidos() {
     const { data, error } = await db.from('pedidos').select('*').order('fecha_creacion', { ascending: false });
     if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
     TODOS = data || [];
     renderizarPedidos();
-    if (document.getElementById('tab-reportes').style.display !== 'none') renderReportes();
+    renderInicio();
   }
 
   function init() {
     cargarConfig();
     cargarPedidos();
-    sincronizar(true); // sync inicial silenciosa
-    setInterval(() => sincronizar(true), 20000); // cada 20s mientras la pestaña esté abierta
+    sincronizar(true);
+    setInterval(() => sincronizar(true), 20000);
   }
 </script>
 </body>
