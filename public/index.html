@@ -341,7 +341,7 @@
       const resp = await fetch('/api/sync');
       const data = await resp.json();
       if (resp.ok) {
-        estadoEl.textContent = `Listo — ${data.guardados} de ${data.total_ml} pedidos actualizados. (${new Date().toLocaleTimeString('es-AR')})`;
+        estadoEl.textContent = `Sincronización completa — ${data.guardados} pedidos actualizados, ${data.nuevos} nuevos, ${data.cambios_estado} cambios de estado. (${new Date().toLocaleTimeString('es-AR')})`;
         cargarPedidos();
       } else if (!silencioso) estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
     } catch (e) { if (!silencioso) estadoEl.textContent = 'Error de red: ' + e.message; }
@@ -374,15 +374,42 @@
   /* ---------- INICIO ---------- */
   function renderInicio() {
     const pedidos = TODOS;
-    const total = pedidos.length;
+    const ahora = new Date();
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const inicioMesAnterior = new Date(ahora.getFullYear(), ahora.getMonth()-1, 1);
+    const finMesAnterior = new Date(ahora.getFullYear(), ahora.getMonth(), 0, 23,59,59);
+
+    const esteMes = pedidos.filter(p => p.fecha_creacion && new Date(p.fecha_creacion) >= inicioMes);
+    const mesAnterior = pedidos.filter(p => p.fecha_creacion && new Date(p.fecha_creacion) >= inicioMesAnterior && new Date(p.fecha_creacion) <= finMesAnterior);
+
+    const gastoEsteMes = esteMes.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const gastoMesAnterior = mesAnterior.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const variacion = gastoMesAnterior > 0 ? ((gastoEsteMes - gastoMesAnterior) / gastoMesAnterior) * 100 : null;
+
     const entregados = pedidos.filter(p => p.status_envio === 'delivered').length;
     const enCamino = pedidos.filter(p => ['shipped','ready_to_ship','handling'].includes(p.status_envio)).length;
+    const cancelados = pedidos.filter(p => p.status_orden === 'cancelled').length;
+    const devueltos = pedidos.filter(p => p.tipo_envio === 'return' || p.status_envio === 'not_delivered').length;
     const gastoTotal = pedidos.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const unidadesTotales = pedidos.reduce((a,p)=>a+(p.cantidad_unidades||1),0);
+    const vendedoresDistintos = new Set(pedidos.map(p=>p.vendedor_nickname).filter(Boolean)).size;
+    const ticketPromedio = pedidos.length ? gastoTotal / pedidos.length : 0;
+
+    const variacionHtml = variacion === null ? '' :
+      `<span style="font-size:11px; color:${variacion>=0?'var(--bad)':'var(--ok)'}">${variacion>=0?'↑':'↓'} ${Math.abs(variacion).toFixed(1)}% vs. mes anterior</span>`;
+
     document.getElementById('statsInicio').innerHTML = `
-      <div class="stat"><div class="num">${total}</div><div class="lbl">Pedidos totales</div></div>
+      <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Compras totales</div></div>
+      <div class="stat"><div class="num">${esteMes.length}</div><div class="lbl">Compras este mes</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto histórico</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoEsteMes)}</div><div class="lbl">Gasto este mes</div>${variacionHtml}</div>
       <div class="stat"><div class="num" style="color:var(--ok)">${entregados}</div><div class="lbl">Entregados</div></div>
       <div class="stat"><div class="num" style="color:var(--warn)">${enCamino}</div><div class="lbl">En camino</div></div>
-      <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto total</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${cancelados}</div><div class="lbl">Cancelados</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${devueltos}</div><div class="lbl">Devueltos</div></div>
+      <div class="stat"><div class="num">${unidadesTotales}</div><div class="lbl">Unidades compradas</div></div>
+      <div class="stat"><div class="num">${vendedoresDistintos}</div><div class="lbl">Vendedores distintos</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(ticketPromedio)}</div><div class="lbl">Ticket promedio</div></div>
     `;
     renderAlertas(pedidos, 'alertasInicio');
 

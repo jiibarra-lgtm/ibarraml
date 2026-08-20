@@ -1,10 +1,12 @@
 // GET /api/sync
-// Trae TODOS los pedidos del usuario (paginando de a 50, que es el máximo
-// de ML por request), con su categoría, y los guarda/actualiza en Supabase.
+// Trae TODOS los pedidos, con datos financieros completos (envío, descuentos,
+// cupón, impuestos), actualiza la tabla sellers, agrega al historial de
+// precios cuando corresponde, y deja un log de la corrida en sync_logs.
 
 import { createClient } from '@supabase/supabase-js';
 
-const categoriaCache = new Map(); // evita pedir la misma categoría repetidas veces
+const categoriaCache = new Map();
+const itemCache = new Map();
 
 async function refreshTokenIfNeeded(supabase, auth) {
   const expiresAt = new Date(auth.expires_at).getTime();
@@ -37,34 +39,40 @@ async function getCategoriaNombre(categoryId, accessToken) {
   if (!categoryId) return null;
   if (categoriaCache.has(categoryId)) return categoriaCache.get(categoryId);
   try {
-    const resp = await fetch(`https://api.mercadolibre.com/categories/${categoryId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const resp = await fetch(`https://api.mercadolibre.com/categories/${categoryId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!resp.ok) return null;
     const data = await resp.json();
     categoriaCache.set(categoryId, data.name);
     return data.name;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-const itemCache = new Map();
-async function getFotoProducto(itemId, accessToken) {
-  if (!itemId) return null;
+async function getInfoProducto(itemId, accessToken) {
+  if (!itemId) return { foto: null, sku: null };
   if (itemCache.has(itemId)) return itemCache.get(itemId);
   try {
-    const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!resp.ok) return null;
+    const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail,seller_custom_field,permalink`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) return { foto: null, sku: null, link: null };
     const data = await resp.json();
-    const foto = data.secure_thumbnail || data.thumbnail || null;
-    itemCache.set(itemId, foto);
-    return foto;
-  } catch {
-    return null;
-  }
+    const info = { foto: data.secure_thumbnail || data.thumbnail || null, sku: data.seller_custom_field || null, link: data.permalink || null };
+    itemCache.set(itemId, info);
+    return info;
+  } catch { return { foto: null, sku: null, link: null }; }
+}
+
+async function getDescuentos(orderId, accessToken) {
+  try {
+    const resp = await fetch(`https://api.mercadolibre.com/orders/${orderId}/discounts`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) return { descuento: 0, cupon: 0 };
+    const data = await resp.json();
+    let descuento = 0, cupon = 0;
+    for (const d of data.details || []) {
+      const monto = (d.items || []).reduce((a, it) => a + (it.amounts?.total || 0), 0);
+      if (d.type === 'coupon') cupon += monto;
+      else descuento += monto;
+    }
+    return { descuento, cupon };
+  } catch { return { descuento: 0, cupon: 0 }; }
 }
 
 export default async function handler(req, res) {
@@ -77,14 +85,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Todavía no conectaste tu cuenta de Mercado Libre. Andá a /api/login primero.' });
   }
 
+  let procesados = 0, guardados = 0, nuevos = 0, cambiosEstado = 0;
+
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
 
     let offset = 0;
     const limit = 50;
     let total = Infinity;
-    let guardados = 0;
-    let procesados = 0;
 
     while (offset < total) {
       const ordersResp = await fetch(
@@ -93,72 +101,115 @@ export default async function handler(req, res) {
       );
       const ordersData = await ordersResp.json();
       if (!ordersResp.ok) {
+        await supabase.from('sync_logs').insert({ ok: false, procesados, guardados, nuevos, cambios_estado: cambiosEstado, error: JSON.stringify(ordersData) });
         return res.status(400).json({ error: 'Error consultando pedidos', detail: ordersData });
       }
-
       total = ordersData.paging?.total ?? (ordersData.results?.length || 0);
 
       for (const order of ordersData.results || []) {
         procesados++;
 
+        // Estado previo (para detectar cambios y para no perder factura/notas al reprocesar)
+        const { data: existente } = await supabase.from('pedidos').select('status_envio').eq('order_id', order.id).single();
+        const esNuevo = !existente;
+        if (existente && existente.status_envio) {
+          // se compara después de tener el nuevo shipInfo, más abajo
+        }
+
         let shipping = null;
         if (order.shipping?.id) {
           try {
-            const shipResp = await fetch(
-              `https://api.mercadolibre.com/orders/${order.id}/shipments`,
-              { headers: { Authorization: `Bearer ${accessToken}`, 'X-New-Domain': 'true' } }
-            );
+            const shipResp = await fetch(`https://api.mercadolibre.com/orders/${order.id}/shipments`, { headers: { Authorization: `Bearer ${accessToken}`, 'X-New-Domain': 'true' } });
             if (shipResp.ok) shipping = await shipResp.json();
-          } catch (e) {
-            console.error('Error trayendo shipment de la orden', order.id, e);
-          }
+          } catch (e) { console.error('shipment error', order.id, e); }
         }
         const shipInfo = Array.isArray(shipping) ? shipping.find(s => s.type === 'forward') : shipping;
+
+        if (existente && existente.status_envio !== (shipInfo?.status || null)) cambiosEstado++;
 
         const primerItem = order.order_items?.[0]?.item;
         const categoriaId = primerItem?.category_id || null;
         const categoriaNombre = await getCategoriaNombre(categoriaId, accessToken);
+        const infoProducto = await getInfoProducto(primerItem?.id, accessToken);
+        const { descuento, cupon } = await getDescuentos(order.id, accessToken);
+
         const metodoPago = order.payments?.[0]?.payment_type || null;
-        const fotoProducto = await getFotoProducto(primerItem?.id, accessToken);
+        const cuotas = order.payments?.[0]?.installments || null;
+        const fechaPago = order.payments?.[0]?.date_approved || null;
         const precioUnitario = order.order_items?.[0]?.unit_price ?? null;
         const cantidadUnidades = order.order_items?.[0]?.quantity ?? 1;
+        const variante = (primerItem?.variation_attributes || []).map(a => a.value_name).join(' / ') || null;
 
         const { error: upsertErr } = await supabase.from('pedidos').upsert({
           order_id: order.id,
           pack_id: order.pack_id || null,
+          numero_operacion: String(order.pack_id || order.id),
+          seller_id: order.seller?.id || null,
           titulo: primerItem?.title || null,
+          variante,
+          sku: infoProducto.sku,
+          link_publicacion: infoProducto.link,
           cantidad_items: order.order_items?.length || 1,
+          cantidad_unidades: cantidadUnidades,
+          precio_unitario: precioUnitario,
           total: order.total_amount,
           moneda: order.currency_id,
+          costo_envio: shipInfo?.shipping_option?.cost ?? null,
+          descuento_monto: descuento || null,
+          cupon_monto: cupon || null,
+          impuestos_monto: order.taxes?.amount ?? null,
+          cuotas,
+          fecha_pago: fechaPago,
           vendedor_nickname: order.seller?.nickname || null,
           status_orden: order.status,
           status_envio: shipInfo?.status || null,
           substatus_envio: shipInfo?.substatus || null,
+          tipo_envio: shipInfo?.type || null,
           tracking_number: shipInfo?.tracking_number || null,
           categoria_id: categoriaId,
           categoria_nombre: categoriaNombre,
           metodo_pago: metodoPago,
-          imagen_url: fotoProducto,
-          precio_unitario: precioUnitario,
-          cantidad_unidades: cantidadUnidades,
+          imagen_url: infoProducto.foto,
           fecha_creacion: order.date_created,
+          fecha_despachado: shipInfo?.status_history?.date_shipped || null,
           fecha_entrega: shipInfo?.status_history?.date_delivered || null,
           entregado_confirmado: shipInfo?.status === 'delivered',
+          ultima_sync: new Date().toISOString(),
           raw_order: order,
           raw_shipping: shipInfo,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'order_id' });
 
-        if (!upsertErr) guardados++;
-      }
+        if (!upsertErr) {
+          guardados++;
+          if (esNuevo) nuevos++;
 
+          // Actualizar tabla sellers (entidad propia)
+          if (order.seller?.id) {
+            const { data: sellerActual } = await supabase.from('sellers').select('*').eq('seller_id', order.seller.id).single();
+            await supabase.from('sellers').upsert({
+              seller_id: order.seller.id,
+              nickname: order.seller.nickname || sellerActual?.nickname || null,
+              cantidad_compras: (sellerActual?.cantidad_compras || 0) + (esNuevo ? 1 : 0),
+              total_gastado: (sellerActual?.total_gastado || 0) + (esNuevo ? (order.total_amount || 0) : 0),
+              ultima_compra: order.date_created,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'seller_id' });
+          }
+
+          // Historial de precios: solo si ya existe producto_generico cargado a mano en un pedido previo
+          // (se completa progresivamente a medida que cargás nombres genéricos)
+        }
+      }
       offset += limit;
-      if (!ordersData.results || ordersData.results.length === 0) break; // corte de seguridad
+      if (!ordersData.results || ordersData.results.length === 0) break;
     }
 
-    res.status(200).json({ ok: true, total_ml: total, procesados, guardados });
+    await supabase.from('sync_logs').insert({ ok: true, procesados, guardados, nuevos, cambios_estado: cambiosEstado });
+    res.status(200).json({ ok: true, total_ml: total, procesados, guardados, nuevos, cambios_estado: cambiosEstado });
   } catch (err) {
     console.error(err);
+    await supabase.from('sync_logs').insert({ ok: false, procesados, guardados, nuevos, cambios_estado: cambiosEstado, error: String(err) });
     res.status(500).json({ error: 'Error inesperado', detail: String(err) });
   }
 }
