@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pedidos s Ibarra</title>
+<title>Pedidos — Ibarra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -47,7 +48,8 @@
   .nav-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer; margin-bottom:2px;}
   .nav-item:hover{background:var(--bg);}
   .nav-item.active{background:var(--indigo-l); color:var(--indigo); font-weight:600;}
-  .nav-item .ic{width:16px; text-align:center; font-size:14px;}
+  .nav-item .ic{width:16px; text-align:center; font-size:15px; display:inline-flex; align-items:center; justify-content:center;}
+  .sidebar-footer button i{font-size:14px; margin-right:4px;}
 
   .sidebar-footer{border-top:1px solid var(--border); padding-top:10px; display:flex; gap:8px;}
   .sidebar-footer button{flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px; font-size:12px;}
@@ -95,8 +97,8 @@
   table.productos tbody tr:hover{background:var(--bg);}
   table.productos tbody tr:last-child td{border-bottom:none;}
   .th-num, .td-num{text-align:right;}
-  .foto-prod{width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--border); background:var(--bg); flex-shrink:0;}
-  .foto-prod.placeholder{display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:10px;}
+  .foto-prod{width:48px; height:48px; border-radius:7px; object-fit:cover; border:1px solid var(--border); background:var(--bg); flex-shrink:0; display:block;}
+  .foto-prod.placeholder{display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:9px; text-align:center; line-height:1.2; padding:2px;}
   .celda-producto{display:flex; align-items:center; gap:10px;}
   .celda-producto .nombre{font-weight:600; font-size:12.5px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .celda-producto .vendedor{font-size:11px; color:var(--muted); margin-top:1px;}
@@ -152,7 +154,7 @@
   .grid-accesos{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px;}
   .acceso-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; cursor:pointer; transition:border-color .15s, transform .1s;}
   .acceso-card:hover{border-color:var(--indigo); transform:translateY(-1px);}
-  .acceso-icon{width:38px; height:38px; border-radius:9px; background:var(--indigo-l); color:var(--indigo); display:flex; align-items:center; justify-content:center; font-size:17px; margin-bottom:10px;}
+  .acceso-icon{width:38px; height:38px; border-radius:9px; background:var(--indigo-l); color:var(--indigo); display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px;}
   .acceso-nombre{font-size:13.5px; font-weight:600; margin-bottom:3px;}
   .acceso-desc{font-size:11.5px; color:var(--muted); line-height:1.4;}
 </style>
@@ -177,22 +179,22 @@
     </div>
     <nav>
       <div class="nav-section">Principal</div>
-      <div class="nav-item active" data-pagina="inicio"><span class="ic">◈</span> Inicio</div>
-      <div class="nav-item" data-pagina="pedidos"><span class="ic">▤</span> Pedidos</div>
+      <div class="nav-item active" data-pagina="inicio"><span class="ic"><i class="ti ti-home"></i></span> Inicio</div>
+      <div class="nav-item" data-pagina="pedidos"><span class="ic"><i class="ti ti-shopping-bag"></i></span> Pedidos</div>
 
       <div class="nav-section">Reportes</div>
-      <div class="nav-item" data-pagina="graficos"><span class="ic">◔</span> Gráficos</div>
-      <div class="nav-item" data-pagina="productos"><span class="ic">▥</span> Top productos</div>
-      <div class="nav-item" data-pagina="pagos"><span class="ic">$</span> Método de pago</div>
-      <div class="nav-item" data-pagina="rubros"><span class="ic">▦</span> Rubros</div>
-      <div class="nav-item" data-pagina="conciliacion"><span class="ic">✓</span> Conciliación</div>
+      <div class="nav-item" data-pagina="graficos"><span class="ic"><i class="ti ti-chart-pie"></i></span> Gráficos</div>
+      <div class="nav-item" data-pagina="productos"><span class="ic"><i class="ti ti-package"></i></span> Top productos</div>
+      <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
+      <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
+      <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
 
       <div class="nav-section">Sistema</div>
-      <div class="nav-item" data-pagina="config"><span class="ic">⚙</span> Configuración</div>
+      <div class="nav-item" data-pagina="config"><span class="ic"><i class="ti ti-settings"></i></span> Configuración</div>
     </nav>
     <div class="sidebar-footer">
-      <button id="btnTheme">◐ Tema</button>
-      <button id="btnLogout">⎋ Salir</button>
+      <button id="btnTheme"><i class="ti ti-moon"></i> Tema</button>
+      <button id="btnLogout"><i class="ti ti-logout"></i> Salir</button>
     </div>
   </aside>
 
@@ -224,7 +226,7 @@
         <div class="titulo-grupo">Pedidos</div>
         <div class="grid-accesos">
           <div class="acceso-card" data-ir="pedidos">
-            <div class="acceso-icon">▤</div>
+            <div class="acceso-icon"><i class="ti ti-shopping-bag"></i></div>
             <div class="acceso-nombre">Todos los pedidos</div>
             <div class="acceso-desc">Lista completa, con fotos y precio unitario</div>
           </div>
@@ -235,27 +237,27 @@
         <div class="titulo-grupo">Reportes</div>
         <div class="grid-accesos">
           <div class="acceso-card" data-ir="graficos">
-            <div class="acceso-icon">◔</div>
+            <div class="acceso-icon"><i class="ti ti-chart-pie"></i></div>
             <div class="acceso-nombre">Gráficos</div>
             <div class="acceso-desc">Gasto por categoría y por mes</div>
           </div>
           <div class="acceso-card" data-ir="productos">
-            <div class="acceso-icon">▥</div>
+            <div class="acceso-icon"><i class="ti ti-package"></i></div>
             <div class="acceso-nombre">Top productos</div>
             <div class="acceso-desc">Lo que más comprás, agrupado</div>
           </div>
           <div class="acceso-card" data-ir="pagos">
-            <div class="acceso-icon">$</div>
+            <div class="acceso-icon"><i class="ti ti-credit-card"></i></div>
             <div class="acceso-nombre">Método de pago</div>
             <div class="acceso-desc">Gasto discriminado por medio de pago</div>
           </div>
           <div class="acceso-card" data-ir="rubros">
-            <div class="acceso-icon">▦</div>
+            <div class="acceso-icon"><i class="ti ti-tags"></i></div>
             <div class="acceso-nombre">Rubros</div>
             <div class="acceso-desc">Gasto por rubro y deducibilidad</div>
           </div>
           <div class="acceso-card" data-ir="conciliacion">
-            <div class="acceso-icon">✓</div>
+            <div class="acceso-icon"><i class="ti ti-clipboard-check"></i></div>
             <div class="acceso-nombre">Conciliación</div>
             <div class="acceso-desc">Qué falta cargar en el Cotizador</div>
           </div>
@@ -266,7 +268,7 @@
         <div class="titulo-grupo">Sistema</div>
         <div class="grid-accesos">
           <div class="acceso-card" data-ir="config">
-            <div class="acceso-icon">⚙</div>
+            <div class="acceso-icon"><i class="ti ti-settings"></i></div>
             <div class="acceso-nombre">Configuración</div>
             <div class="acceso-desc">Alertas y exportación de datos</div>
           </div>
@@ -443,6 +445,10 @@
     if (n === null || n === undefined || isNaN(n)) return '-';
     return '$' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
   }
+  function fmtExacto(n) {
+    if (n === null || n === undefined || isNaN(n)) return '-';
+    return '$' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  }
   function nombreGenerico(p) { return p.producto_generico || p.categoria_nombre || 'Sin nombre'; }
   function montoReal(p) {
     const t = Number(p.total) || 0;
@@ -584,7 +590,7 @@
     const cantidad = p.cantidad_unidades || 1;
     const unitario = p.precio_unitario ?? (p.total && cantidad ? p.total / cantidad : null);
     tr.innerHTML = `
-      <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" alt="" />` : `<div class="foto-prod placeholder">s/f</div>`}</td>
+      <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" alt="${(p.titulo||'').replace(/"/g,'')}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
       <td>
         <div class="celda-producto">
           <div>
@@ -594,8 +600,8 @@
         </div>
       </td>
       <td class="td-num">${cantidad}</td>
-      <td class="td-num precio-unit">${fmtMoneda(unitario)}</td>
-      <td class="td-num precio-total">${fmtMoneda(montoReal(p))}</td>
+      <td class="td-num precio-unit">${fmtExacto(unitario)}</td>
+      <td class="td-num precio-total">${fmtExacto(montoReal(p))}</td>
       <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span></td>
       <td><input type="checkbox" ${p.verificado_por_mi?'checked':''} title="Verificado" /></td>
       <td><button class="toggle-contab">Detalle</button></td>
