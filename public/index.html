@@ -396,6 +396,12 @@
           <option value="si">Llegaron</option>
           <option value="no">No llegaron todavía</option>
         </select>
+        <select id="ordenHistorial">
+          <option value="fecha_desc">Fecha: más reciente primero</option>
+          <option value="fecha_asc">Fecha: más antiguo primero</option>
+          <option value="monto_asc">Monto: menor a mayor</option>
+          <option value="monto_desc">Monto: mayor a menor</option>
+        </select>
       </div>
       <div class="panel" style="padding:0; overflow-x:auto;">
         <table class="productos" id="tablaHistorial">
@@ -1436,12 +1442,22 @@
   /* ---------- HISTORIAL CRONOLÓGICO ---------- */
   document.getElementById('buscarHistorial').oninput = renderHistorial;
   document.getElementById('filtroLlegadaHistorial').onchange = renderHistorial;
+  document.getElementById('ordenHistorial').onchange = renderHistorial;
 
   function renderHistorial() {
     const busqueda = document.getElementById('buscarHistorial').value.toLowerCase();
     const filtroLlegada = document.getElementById('filtroLlegadaHistorial').value;
+    const orden = document.getElementById('ordenHistorial').value;
 
-    let pedidos = [...TODOS].sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    let pedidos = [...TODOS];
+    const ordenadores = {
+      fecha_desc: (a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion),
+      fecha_asc: (a,b) => new Date(a.fecha_creacion) - new Date(b.fecha_creacion),
+      monto_asc: (a,b) => montoReal(a) - montoReal(b),
+      monto_desc: (a,b) => montoReal(b) - montoReal(a),
+    };
+    pedidos.sort(ordenadores[orden] || ordenadores.fecha_desc);
+
     pedidos = pedidos.filter(p => {
       const matchBusqueda = !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda);
       const matchLlegada = !filtroLlegada || (filtroLlegada === 'si' ? p.verificado_por_mi : !p.verificado_por_mi);
