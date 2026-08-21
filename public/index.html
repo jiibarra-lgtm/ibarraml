@@ -36,6 +36,8 @@
 
   #shell{display:none; grid-template-columns:230px 1fr; min-height:100vh;}
   [data-app-visible="1"] #shell{display:grid;}
+  .btn-hamburguesa{display:none;}
+  #backdropMenu{display:none;}
 
   /* --- Sidebar --- */
   aside{background:var(--sidebar); border-right:1px solid var(--border); padding:18px 12px; display:flex; flex-direction:column;}
@@ -117,6 +119,7 @@
   .badge.shipped{background:rgba(217,119,6,.12); color:var(--warn);}
   .badge.pending{background:rgba(118,123,143,.12); color:var(--muted);}
   .badge.other{background:rgba(220,38,38,.12); color:var(--bad);}
+  .badge.flex{background:rgba(79,70,229,.12); color:var(--indigo); font-weight:700;}
   .toggle-contab{font-size:11px; color:var(--indigo); background:none; padding:4px 8px; border:1px solid var(--border); border-radius:6px;}
   .toggle-contab:hover{background:var(--indigo-l);}
 
@@ -133,7 +136,21 @@
   .empty{color:var(--muted); font-size:13px; padding:40px 24px; text-align:center;}
 
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
-  @media(max-width:800px){.grid2{grid-template-columns:1fr;} #shell{grid-template-columns:1fr;} aside{display:none;}}
+  @media(max-width:800px){
+    .grid2{grid-template-columns:1fr;}
+    #shell{grid-template-columns:1fr;}
+    aside{
+      position:fixed; top:0; left:0; bottom:0; width:250px; z-index:60;
+      transform:translateX(-100%); transition:transform .2s ease;
+      box-shadow:2px 0 16px rgba(0,0,0,.25);
+    }
+    aside.abierto{transform:translateX(0);}
+    .btn-hamburguesa{display:flex; align-items:center; justify-content:center; width:38px; height:38px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:18px; flex-shrink:0;}
+    #backdropMenu{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:55;}
+    #backdropMenu.abierto{display:block;}
+    main{padding:16px 16px 60px;}
+    .topbar{flex-wrap:nowrap;}
+  }
   .panel{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
   .panel h3{font-size:13px; margin-bottom:12px;}
   .panel-chart{position:relative; height:220px;}
@@ -189,7 +206,8 @@
 </div>
 
 <div id="shell">
-  <aside>
+  <div id="backdropMenu"></div>
+  <aside id="sidebarMenu">
     <div class="brand">
       <div class="logo">I</div>
       <div class="brand-text"><b>Ibarra</b><span>PEDIDOS ML</span></div>
@@ -223,9 +241,12 @@
 
   <main>
     <div class="topbar">
-      <div>
-        <h1 id="tituloPagina">Inicio</h1>
-        <div class="sub">Compras en Mercado Libre, sincronizadas y ordenadas.</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn-hamburguesa" id="btnHamburguesa"><i class="ti ti-menu-2"></i></button>
+        <div>
+          <h1 id="tituloPagina">Inicio</h1>
+          <div class="sub">Compras en Mercado Libre, sincronizadas y ordenadas.</div>
+        </div>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-outline" id="btnConectar" title="Solo la primera vez, para autorizar tu cuenta">Conectar Mercado Libre</button>
@@ -498,6 +519,18 @@
     document.body.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
   };
 
+  /* ---------- MENÚ MOBILE (drawer) ---------- */
+  function abrirMenuMobile() {
+    document.getElementById('sidebarMenu').classList.add('abierto');
+    document.getElementById('backdropMenu').classList.add('abierto');
+  }
+  function cerrarMenuMobile() {
+    document.getElementById('sidebarMenu').classList.remove('abierto');
+    document.getElementById('backdropMenu').classList.remove('abierto');
+  }
+  document.getElementById('btnHamburguesa').onclick = abrirMenuMobile;
+  document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
+
   /* ---------- NAV SIDEBAR ---------- */
   const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
@@ -512,6 +545,7 @@
     if (pag === 'anual') renderComparativoAnual();
     if (pag === 'reclamos') renderReclamos();
     if (pag !== 'escanear') detenerScanner();
+    cerrarMenuMobile();
   }
   document.querySelectorAll('.nav-item').forEach(item => { item.onclick = () => irAPagina(item.dataset.pagina); });
   document.querySelectorAll('.acceso-card').forEach(card => { card.onclick = () => irAPagina(card.dataset.ir); });
@@ -757,7 +791,7 @@
       <td class="td-num">${cantidad}</td>
       <td class="td-num precio-unit">${fmtExacto(unitario)}</td>
       <td class="td-num precio-total">${fmtExacto(montoReal(p))}</td>
-      <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span></td>
+      <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>${p.logistic_type === 'self_service' ? ' <span class="badge flex">⚡ Flex</span>' : ''}${p.fecha_estimada_cambio ? ' <span class="badge other">Fecha cambió</span>' : ''}</td>
       <td><input type="checkbox" ${p.verificado_por_mi?'checked':''} title="Verificado" /></td>
       <td><button class="toggle-contab">Detalle</button></td>
     `;
@@ -813,6 +847,16 @@
             <div class="campo check"><input type="checkbox" class="c-reclamo" ${p.reclamo_abierto?'checked':''} /><label>Reclamo abierto</label></div>
             <div class="campo"><label>Plazo límite</label><input type="date" class="c-plazo" value="${p.reclamo_fecha_limite??''}" /></div>
             <button class="btn btn-outline c-plantilla" type="button" style="padding:6px 10px; font-size:11px;">Copiar plantilla de reclamo</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Envío</div>
+          <div style="font-size:12.5px; line-height:1.6;">
+            ${p.logistic_type === 'self_service' ? '<span class="badge flex">⚡ Envío Flex</span><br/>' : ''}
+            ${p.logistic_type ? `Tipo logístico: <b>${p.logistic_type}</b><br/>` : ''}
+            Costo de envío: <b>${p.costo_envio != null ? fmtExacto(p.costo_envio) : 'Gratis / no informado'}</b><br/>
+            ${p.destino_direccion ? `Retiro en: <b>${p.destino_direccion}</b><br/>` : ''}
+            ${p.fecha_estimada_cambio ? `<span style="color:var(--bad);">⚠ La fecha estimada cambió respecto a la última sync.</span>` : ''}
           </div>
         </div>
       </div>

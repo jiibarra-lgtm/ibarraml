@@ -114,7 +114,7 @@ export default async function handler(req, res) {
       procesados++;
 
       const { data: existente } = await supabase.from('pedidos')
-        .select('status_envio, imagen_url, categoria_nombre, sku, link_publicacion, factura_ml_id')
+        .select('status_envio, imagen_url, categoria_nombre, sku, link_publicacion, factura_ml_id, fecha_estimada')
         .eq('order_id', order.id).single();
       const esNuevo = !existente;
 
@@ -159,6 +159,20 @@ export default async function handler(req, res) {
       const cantidadUnidades = order.order_items?.[0]?.quantity ?? 1;
       const variante = (primerItem?.variation_attributes || []).map(a => a.value_name).join(' / ') || null;
 
+      // Tipo logístico real (self_service = Flex; fulfillment/drop_off/cross_docking = normal)
+      const logisticType = shipInfo?.logistic_type || null;
+
+      // Punto de retiro: solo si ML devuelve esos datos en el destino del envío (no todos los pedidos lo tienen)
+      const destinoTipo = shipInfo?.destination?.type || null;
+      const destinoDireccion = shipInfo?.destination?.shipping_address?.address_line || null;
+
+      // Costo real de envío según el tipo de logística
+      const costoEnvio = shipInfo?.shipping_option?.cost ?? null;
+
+      // Detección de cambio de fecha estimada respecto a la última sync
+      const fechaEstimadaNueva = shipInfo?.shipping_option?.estimated_delivery_time?.date || null;
+      const fechaEstimadaCambio = !!(existente?.fecha_estimada && fechaEstimadaNueva && existente.fecha_estimada !== fechaEstimadaNueva);
+
       const payload = {
         order_id: order.id,
         pack_id: order.pack_id || null,
@@ -180,6 +194,12 @@ export default async function handler(req, res) {
         status_envio: shipInfo?.status || null,
         substatus_envio: shipInfo?.substatus || null,
         tipo_envio: shipInfo?.type || null,
+        logistic_type: logisticType,
+        destino_tipo: destinoTipo,
+        destino_direccion: destinoDireccion,
+        costo_envio: costoEnvio,
+        fecha_estimada: fechaEstimadaNueva,
+        fecha_estimada_cambio: fechaEstimadaCambio,
         tracking_number: shipInfo?.tracking_number || null,
         categoria_id: primerItem?.category_id || null,
         categoria_nombre: categoriaNombre,
