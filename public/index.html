@@ -160,8 +160,15 @@
   table.reporte tr:last-child td{border-bottom:none;}
   .config-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
   .config-row .campo input{width:120px;}
-  .recientes-item{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .recientes-item{display:flex; justify-content:space-between; align-items:center; padding:12px 4px; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; gap:10px;}
+  .recientes-item:hover{background:var(--bg);}
   .recientes-item:last-child{border-bottom:none;}
+  .recientes-titulo{color:var(--indigo); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .recientes-meta{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .factura-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .factura-dot.si{background:var(--ok);}
+  .factura-dot.no{background:var(--border); border:1px solid var(--muted);}
+  #recientes{max-height:520px; overflow-y:auto;}
 
   .reclamo-item{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
   .reclamo-plazo{font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px;}
@@ -348,7 +355,12 @@
       <div class="stats" id="statsInicio" style="margin-top:6px;"></div>
       <div class="alertas" id="alertasInicio"></div>
       <div class="panel">
-        <h3>Últimos pedidos</h3>
+        <h3 style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Últimos pedidos</span>
+          <span style="font-size:11px; font-weight:400; color:var(--muted); display:flex; gap:6px; align-items:center;">
+            <span class="factura-dot si"></span> con factura del vendedor &nbsp; <span class="factura-dot no"></span> sin factura
+          </span>
+        </h3>
         <div id="recientes"></div>
       </div>
     </div>
@@ -712,12 +724,29 @@
     renderAlertas(pedidos, 'alertasInicio');
 
     const recientesEl = document.getElementById('recientes');
-    const ultimos = [...pedidos].sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).slice(0, 8);
+    const ultimos = [...pedidos].sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).slice(0, 30);
     recientesEl.innerHTML = ultimos.length ? ultimos.map(p => `
-      <div class="recientes-item">
-        <span>${p.titulo || 'Pedido #' + p.order_id}</span>
-        <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+      <div class="recientes-item" data-order="${p.order_id}">
+        <span class="factura-dot ${p.factura_ml_id ? 'si' : 'no'}" title="${p.factura_ml_id ? 'El vendedor subió factura' : 'El vendedor todavía no subió factura'}"></span>
+        <span class="recientes-titulo">${p.titulo || 'Pedido #' + p.order_id}</span>
+        <span class="recientes-meta">
+          <span style="color:var(--muted); font-size:11px;">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</span>
+          <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+        </span>
       </div>`).join('') : '<div class="empty">Todavía no hay pedidos sincronizados.</div>';
+
+    recientesEl.querySelectorAll('.recientes-item').forEach(row => {
+      row.onclick = () => {
+        const p = TODOS.find(x => String(x.order_id) === row.dataset.order);
+        irAPagina('pedidos');
+        document.getElementById('buscar').value = p?.titulo || '';
+        renderizarPedidos();
+        setTimeout(() => {
+          const fila = document.querySelector(`tr[data-order-id="${row.dataset.order}"] + tr`);
+          if (fila) { fila.classList.add('open'); fila.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        }, 100);
+      };
+    });
   }
 
   /* ---------- ALERTAS (reutilizable) ---------- */
@@ -800,6 +829,7 @@
 
   function filaPedido(p) {
     const tr = document.createElement('tr');
+    tr.dataset.orderId = p.order_id;
     const cantidad = p.cantidad_unidades || 1;
     const unitario = p.precio_unitario ?? (p.total && cantidad ? p.total / cantidad : null);
     tr.innerHTML = `
