@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pedidos —c Ibarra</title>
+<title>Pedidos — Ibarra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -727,6 +727,10 @@
     return '$' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   }
   function nombreGenerico(p) { return p.producto_generico || p.categoria_nombre || 'Sin nombre'; }
+  function urlCompraML(p) {
+    const id = p.pack_id || p.order_id;
+    return `https://myaccount.mercadolibre.com.ar/my_purchases/${id}/status?packId=${id}&orderId=${p.order_id}`;
+  }
   function montoReal(p) {
     const t = Number(p.total) || 0;
     if (p.moneda_original && p.tipo_cambio) return t * Number(p.tipo_cambio);
@@ -968,7 +972,8 @@
             ${p.logistic_type ? `Tipo logístico: <b>${p.logistic_type}</b><br/>` : ''}
             Costo de envío: <b>${p.costo_envio != null ? fmtExacto(p.costo_envio) : 'Gratis / no informado'}</b><br/>
             ${p.destino_direccion ? `Retiro en: <b>${p.destino_direccion}</b><br/>` : ''}
-            ${p.fecha_estimada_cambio ? `<span style="color:var(--bad);">⚠ La fecha estimada cambió respecto a la última sync.</span>` : ''}
+            ${p.fecha_estimada_cambio ? `<span style="color:var(--bad);">⚠ La fecha estimada cambió respecto a la última sync.</span><br/>` : ''}
+            <a href="${urlCompraML(p)}" target="_blank" class="link-factura">Ver esta compra en Mercado Libre →</a>
           </div>
         </div>
       </div>
@@ -1523,7 +1528,7 @@
         </div>
         <div class="pendiente-acciones">
           <button class="btn btn-primary c-copiar" style="font-size:12px; padding:8px 10px;">Copiar mensaje para reclamar</button>
-          <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="https://www.mercadolibre.com.ar/compras" target="_blank">Ir a Mis Compras en ML</a>
+          <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="${urlCompraML(p)}" target="_blank">Ver esta compra en ML</a>
         </div>
       `;
       div.querySelector('.c-copiar').onclick = (e) => {
