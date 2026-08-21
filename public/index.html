@@ -10,6 +10,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --indigo:#4f46e5; --indigo-d:#3730a3; --indigo-l:#eef2ff; --teal:#0d9488; --teal-l:#14b8a6;
@@ -402,6 +405,9 @@
           <option value="monto_asc">Monto: menor a mayor</option>
           <option value="monto_desc">Monto: mayor a menor</option>
         </select>
+        <button class="btn btn-outline" id="btnExportarExcelHist"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+        <button class="btn btn-outline" id="btnExportarPdfHist"><i class="ti ti-file-type-pdf"></i> PDF</button>
+        <button class="btn btn-outline" id="btnImprimirHist"><i class="ti ti-printer"></i> Imprimir</button>
       </div>
       <div class="panel" style="padding:0; overflow-x:auto;">
         <table class="productos" id="tablaHistorial">
@@ -1446,6 +1452,8 @@
   document.getElementById('filtroLlegadaHistorial').onchange = renderHistorial;
   document.getElementById('ordenHistorial').onchange = renderHistorial;
 
+  let ULTIMO_HISTORIAL_FILTRADO = [];
+
   function renderHistorial() {
     const busqueda = document.getElementById('buscarHistorial').value.toLowerCase();
     const filtroLlegada = document.getElementById('filtroLlegadaHistorial').value;
@@ -1474,6 +1482,7 @@
       <div class="stat"><div class="num" style="color:var(--warn)">${noLlegaron}</div><div class="lbl">Todavía no llegaron</div></div>
     `;
 
+    ULTIMO_HISTORIAL_FILTRADO = pedidos;
     const tbody = document.getElementById('tbodyHistorial');
     if (!pedidos.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty">No hay pedidos que coincidan.</td></tr>`; return; }
 
@@ -1586,6 +1595,92 @@
       cont.appendChild(div);
     }
   }
+
+  /* ---------- EXPORTAR HISTORIAL: EXCEL / PDF / IMPRIMIR ---------- */
+  function filasParaExportar() {
+    return ULTIMO_HISTORIAL_FILTRADO.map(p => ({
+      'Fecha': p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '',
+      'Producto': p.titulo || `Pedido #${p.order_id}`,
+      'Vendedor': p.vendedor_nickname || '',
+      'Cantidad': p.cantidad_unidades || 1,
+      'Precio unitario': p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null),
+      'Total': montoReal(p),
+      'Moneda': p.moneda || '',
+      'Estado': badgeLabel(p.status_envio),
+      'Flex': p.logistic_type === 'self_service' ? 'Sí' : 'No',
+      'Factura ML': p.factura_ml_id ? 'Sí' : 'No',
+      'Factura manual': p.factura_adjunta ? 'Sí' : 'No',
+      'Llegó': p.verificado_por_mi ? 'Sí' : 'No',
+      'Categoría': p.categoria_nombre || '',
+      'Rubro': p.rubro || '',
+      'Método de pago': p.metodo_pago || '',
+      'N° operación': p.numero_operacion || p.order_id,
+    }));
+  }
+
+  document.getElementById('btnExportarExcelHist').onclick = () => {
+    const filas = filasParaExportar();
+    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
+    const ws = XLSX.utils.json_to_sheet(filas);
+    // Ancho de columnas prolijo
+    ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: Math.max(k.length + 2, 14) }));
+    // Formato de moneda en las columnas numéricas
+    const rango = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = rango.s.r + 1; R <= rango.e.r; R++) {
+      ['E','F'].forEach(col => { // Precio unitario, Total
+        const celda = ws[col + (R+1)];
+        if (celda && typeof celda.v === 'number') celda.z = '#,##0.00';
+      });
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+    XLSX.writeFile(wb, `historial_pedidos_ibarra_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
+
+  document.getElementById('btnExportarPdfHist').onclick = () => {
+    const filas = ULTIMO_HISTORIAL_FILTRADO;
+    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
+
+    doc.setFontSize(15);
+    doc.setFont(undefined, 'bold');
+    doc.text('Historial de Pedidos — Ibarra Insumos', 40, 40);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Generado el ${new Date().toLocaleString('es-AR')} · ${filas.length} pedidos`, 40, 58);
+
+    const gastoTotal = filas.reduce((a,p)=>a+(montoReal(p)||0),0);
+    doc.text(`Gasto total mostrado: ${fmtMoneda(gastoTotal)}`, 40, 72);
+
+    doc.autoTable({
+      startY: 88,
+      styles: { fontSize: 7.5, cellPadding: 4 },
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 247, 251] },
+      head: [['Fecha','Producto','Vendedor','Cant.','Precio unit.','Total','Estado','Factura ML','Llegó']],
+      body: filas.map(p => [
+        p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '',
+        (p.titulo || `Pedido #${p.order_id}`).slice(0, 55),
+        p.vendedor_nickname || '',
+        p.cantidad_unidades || 1,
+        fmtExacto(p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null)),
+        fmtExacto(montoReal(p)),
+        badgeLabel(p.status_envio),
+        p.factura_ml_id ? 'Sí' : 'No',
+        p.verificado_por_mi ? 'Sí' : 'No',
+      ]),
+      columnStyles: { 1: { cellWidth: 180 } },
+      didDrawPage: (data) => {
+        doc.setFontSize(8);
+        doc.text(`Página ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.getWidth() - 60, doc.internal.pageSize.getHeight() - 20);
+      },
+    });
+
+    doc.save(`historial_pedidos_ibarra_${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
+  document.getElementById('btnImprimirHist').onclick = () => window.print();
 
   function init() {
     cargarConfig();
