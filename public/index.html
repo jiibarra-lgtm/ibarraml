@@ -170,6 +170,13 @@
   .factura-dot.no{background:var(--border); border:1px solid var(--muted);}
   .factura-celda{display:flex; flex-direction:column; gap:3px; font-size:10px; color:var(--muted);}
   .factura-celda span{display:flex; align-items:center; gap:5px;}
+
+  .pendiente-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;}
+  .pendiente-foto{width:64px; height:64px; border-radius:8px; object-fit:cover; border:1px solid var(--border); background:var(--bg); flex-shrink:0;}
+  .pendiente-info{flex:1; min-width:180px;}
+  .pendiente-titulo{font-weight:600; font-size:13.5px; margin-bottom:4px;}
+  .pendiente-meta{font-size:12px; color:var(--muted); line-height:1.5;}
+  .pendiente-acciones{display:flex; flex-direction:column; gap:6px; min-width:170px;}
   #recientes{max-height:520px; overflow-y:auto;}
 
   .reclamo-item{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
@@ -234,6 +241,7 @@
       <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
+      <div class="nav-item" data-pagina="sinfactura"><span class="ic"><i class="ti ti-file-alert"></i></span> Facturas pendientes</div>
 
       <div class="nav-section">Análisis</div>
       <div class="nav-item" data-pagina="resumen"><span class="ic"><i class="ti ti-file-text"></i></span> Resumen mensual</div>
@@ -324,6 +332,11 @@
             <div class="acceso-icon"><i class="ti ti-clipboard-check"></i></div>
             <div class="acceso-nombre">Conciliación</div>
             <div class="acceso-desc">Qué falta cargar en el Cotizador</div>
+          </div>
+          <div class="acceso-card" data-ir="sinfactura">
+            <div class="acceso-icon"><i class="ti ti-file-alert"></i></div>
+            <div class="acceso-nombre">Facturas pendientes</div>
+            <div class="acceso-desc">Reclamale al vendedor con un click</div>
           </div>
         </div>
       </div>
@@ -465,6 +478,20 @@
       <div class="panel"><h3>Conciliación con Cotizador</h3><table class="reporte" id="tablaConciliacion"></table></div>
     </div>
 
+    <!-- FACTURAS PENDIENTES -->
+    <div class="pagina" id="pagina-sinfactura">
+      <div class="stats" id="statsSinFactura"></div>
+      <div class="filtros">
+        <select id="filtroTipoFactura">
+          <option value="ml">Sin factura del vendedor (ML)</option>
+          <option value="manual">Sin tu factura manual</option>
+          <option value="ambas">Sin ninguna de las dos</option>
+        </select>
+        <input type="text" id="buscarSinFactura" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+      </div>
+      <div id="listaSinFactura"></div>
+    </div>
+
     <!-- RESUMEN MENSUAL -->
     <div class="pagina" id="pagina-resumen">
       <div class="panel" id="resumenMensualContenido"></div>
@@ -574,7 +601,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -584,6 +611,7 @@
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
     if (pag === 'inicio') renderInicio();
     if (pag === 'historial') renderHistorial();
+    if (pag === 'sinfactura') renderSinFactura();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
     if (pag === 'reclamos') renderReclamos();
@@ -1119,6 +1147,7 @@
     renderizarPedidos();
     renderInicio();
     if (document.getElementById('pagina-historial')?.classList.contains('activa')) renderHistorial();
+    if (document.getElementById('pagina-sinfactura')?.classList.contains('activa')) renderSinFactura();
   }
 
   /* ---------- SCANNER DE PAQUETES ---------- */
@@ -1444,6 +1473,66 @@
         renderHistorial();
       };
       tbody.appendChild(tr);
+    }
+  }
+
+  /* ---------- FACTURAS PENDIENTES ---------- */
+  document.getElementById('filtroTipoFactura').onchange = renderSinFactura;
+  document.getElementById('buscarSinFactura').oninput = renderSinFactura;
+
+  function textoReclamoFactura(p) {
+    return `Hola! Te escribo por la compra "${p.titulo || ''}" (pedido #${p.numero_operacion || p.order_id}) del ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}.\n\n` +
+      `¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!`;
+  }
+
+  function renderSinFactura() {
+    const tipo = document.getElementById('filtroTipoFactura').value;
+    const busqueda = document.getElementById('buscarSinFactura').value.toLowerCase();
+
+    let pedidos = TODOS.filter(p => {
+      if (tipo === 'ml') return !p.factura_ml_id;
+      if (tipo === 'manual') return !p.factura_adjunta;
+      return !p.factura_ml_id && !p.factura_adjunta;
+    });
+    pedidos = pedidos.filter(p => !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda));
+    pedidos.sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    const sinMl = TODOS.filter(p => !p.factura_ml_id).length;
+    const sinManual = TODOS.filter(p => !p.factura_adjunta).length;
+    document.getElementById('statsSinFactura').innerHTML = `
+      <div class="stat"><div class="num" style="color:var(--warn)">${sinMl}</div><div class="lbl">Sin factura del vendedor</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${sinManual}</div><div class="lbl">Sin tu factura manual</div></div>
+      <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Mostrando ahora</div></div>
+    `;
+
+    const cont = document.getElementById('listaSinFactura');
+    if (!pedidos.length) { cont.innerHTML = '<div class="empty">No hay pedidos que coincidan — ¡buen trabajo con la documentación!</div>'; return; }
+
+    cont.innerHTML = '';
+    for (const p of pedidos) {
+      const div = document.createElement('div');
+      div.className = 'pendiente-card';
+      div.innerHTML = `
+        ${p.imagen_url ? `<img class="pendiente-foto" src="${p.imagen_url}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+        <div class="pendiente-info">
+          <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+          <div class="pendiente-meta">
+            ${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)}<br/>
+            ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''} · <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+          </div>
+        </div>
+        <div class="pendiente-acciones">
+          <button class="btn btn-primary c-copiar" style="font-size:12px; padding:8px 10px;">Copiar mensaje para reclamar</button>
+          <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="https://www.mercadolibre.com.ar/compras" target="_blank">Ir a Mis Compras en ML</a>
+        </div>
+      `;
+      div.querySelector('.c-copiar').onclick = (e) => {
+        navigator.clipboard.writeText(textoReclamoFactura(p)).then(() => {
+          e.target.textContent = 'Copiado ✓';
+          setTimeout(() => { e.target.textContent = 'Copiar mensaje para reclamar'; }, 1800);
+        }).catch(() => prompt('Copiá el texto manualmente:', textoReclamoFactura(p)));
+      };
+      cont.appendChild(div);
     }
   }
 
