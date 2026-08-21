@@ -387,6 +387,7 @@
           <option value="shipped">En camino</option>
           <option value="pending">Pendiente</option>
         </select>
+        <button class="btn btn-outline" id="btnColapsarTodo">Colapsar todo</button>
       </div>
       <div id="lista"></div>
     </div>
@@ -631,6 +632,11 @@
   document.getElementById('btnSync').onclick = () => sincronizarCompleto();
   document.getElementById('buscar').oninput = renderizarPedidos;
   document.getElementById('filtroEstado').onchange = renderizarPedidos;
+  document.getElementById('btnColapsarTodo').onclick = (e) => {
+    const abrir = e.target.textContent === 'Expandir todo';
+    document.querySelectorAll('.cat-body').forEach(b => b.classList.toggle('open', abrir));
+    e.target.textContent = abrir ? 'Colapsar todo' : 'Expandir todo';
+  };
 
   function badgeClass(status) {
     if (status === 'delivered') return 'delivered';
@@ -769,7 +775,7 @@
       const totalCat = items.reduce((a,p)=>a+(montoReal(p)||0),0);
       const catDiv = document.createElement('div');
       catDiv.className = 'categoria';
-      catDiv.innerHTML = `<div class="cat-header"><span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span><span class="cat-total">${fmtMoneda(totalCat)}</span></div><div class="cat-body"></div>`;
+      catDiv.innerHTML = `<div class="cat-header"><span class="cat-title">${cat}<span class="cat-count">(${items.length})</span></span><span class="cat-total">${fmtMoneda(totalCat)}</span></div><div class="cat-body open"></div>`;
       const header = catDiv.querySelector('.cat-header');
       const body = catDiv.querySelector('.cat-body');
       header.onclick = () => body.classList.toggle('open');
@@ -1036,9 +1042,20 @@
   };
 
   async function cargarPedidos() {
-    const { data, error } = await db.from('pedidos').select('*').order('fecha_creacion', { ascending: false });
-    if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
-    TODOS = data || [];
+    let todosLosPedidos = [];
+    let desde = 0;
+    const bloque = 1000; // Supabase devuelve máximo 1000 filas por consulta si no se pagina
+    while (true) {
+      const { data, error } = await db.from('pedidos')
+        .select('*')
+        .order('fecha_creacion', { ascending: false })
+        .range(desde, desde + bloque - 1);
+      if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
+      todosLosPedidos = todosLosPedidos.concat(data || []);
+      if (!data || data.length < bloque) break; // ya trajimos todo
+      desde += bloque;
+    }
+    TODOS = todosLosPedidos;
     renderizarPedidos();
     renderInicio();
   }
