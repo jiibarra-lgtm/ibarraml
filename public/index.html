@@ -728,8 +728,13 @@
   }
   function nombreGenerico(p) { return p.producto_generico || p.categoria_nombre || 'Sin nombre'; }
   function urlCompraML(p) {
-    const id = p.order_id;
-    return `https://myaccount.mercadolibre.com.ar/my_purchases/${id}/status?packId=${id}&orderId=${id}`;
+    // El link a la PUBLICACIÓN sí es 100% confiable (dato real de la API,
+    // campo "permalink"). El link a "mi compra específica" en
+    // myaccount.mercadolibre.com.ar NO tiene esa garantía porque es la
+    // web privada de la cuenta, no la API pública — por eso usamos la
+    // publicación como opción principal, y la lista general como respaldo
+    // si todavía no tenemos guardado el link de esa publicación.
+    return p.link_publicacion || `https://myaccount.mercadolibre.com.ar/my_purchases/list`;
   }
   function montoReal(p) {
     const t = Number(p.total) || 0;
@@ -973,7 +978,7 @@
             Costo de envío: <b>${p.costo_envio != null ? fmtExacto(p.costo_envio) : 'Gratis / no informado'}</b><br/>
             ${p.destino_direccion ? `Retiro en: <b>${p.destino_direccion}</b><br/>` : ''}
             ${p.fecha_estimada_cambio ? `<span style="color:var(--bad);">⚠ La fecha estimada cambió respecto a la última sync.</span><br/>` : ''}
-            <a href="${urlCompraML(p)}" target="_blank" class="link-factura">Ver esta compra en Mercado Libre →</a>
+            <a href="${urlCompraML(p)}" target="_blank" class="link-factura" onclick="navigator.clipboard.writeText('${(p.titulo||'').replace(/'/g,"")}')">${p.link_publicacion ? 'Ver publicación en Mercado Libre →' : 'Buscar esta compra en Mercado Libre →'}</a>
           </div>
         </div>
       </div>
@@ -1528,7 +1533,7 @@
         </div>
         <div class="pendiente-acciones">
           <button class="btn btn-primary c-copiar" style="font-size:12px; padding:8px 10px;">Copiar mensaje para reclamar</button>
-          <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="${urlCompraML(p)}" target="_blank">Ver esta compra en ML</a>
+          <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="${urlCompraML(p)}" target="_blank" onclick="navigator.clipboard.writeText('${(p.titulo||'').replace(/'/g,"")}')">${p.link_publicacion ? 'Ver publicación en ML' : 'Buscarlo en Mis Compras'}</a>
         </div>
       `;
       div.querySelector('.c-copiar').onclick = (e) => {
