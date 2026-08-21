@@ -168,6 +168,8 @@
   .factura-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
   .factura-dot.si{background:var(--ok);}
   .factura-dot.no{background:var(--border); border:1px solid var(--muted);}
+  .factura-celda{display:flex; flex-direction:column; gap:3px; font-size:10px; color:var(--muted);}
+  .factura-celda span{display:flex; align-items:center; gap:5px;}
   #recientes{max-height:520px; overflow-y:auto;}
 
   .reclamo-item{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
@@ -385,7 +387,7 @@
       <div class="panel" style="padding:0; overflow-x:auto;">
         <table class="productos" id="tablaHistorial">
           <thead><tr>
-            <th></th><th>Producto</th><th>Fecha</th><th>Vendedor</th><th class="th-num">Total</th><th>Estado</th><th>¿Llegó?</th>
+            <th></th><th>Producto</th><th>Fecha</th><th>Vendedor</th><th class="th-num">Total</th><th>Estado</th><th>Factura</th><th>¿Llegó?</th>
           </tr></thead>
           <tbody id="tbodyHistorial"></tbody>
         </table>
@@ -1427,6 +1429,12 @@
         <td style="font-size:12px;">${p.vendedor_nickname || '-'}</td>
         <td class="td-num precio-total">${fmtExacto(montoReal(p))}</td>
         <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>${p.logistic_type === 'self_service' ? ' <span class="badge flex">⚡</span>' : ''}</td>
+        <td>
+          <div class="factura-celda">
+            <span><span class="factura-dot ${p.factura_ml_id ? 'si' : 'no'}"></span> ML</span>
+            <span><span class="factura-dot ${p.factura_adjunta ? 'si' : 'no'}"></span> Manual</span>
+          </div>
+        </td>
         <td><input type="checkbox" ${p.verificado_por_mi?'checked':''} /></td>
       `;
       tr.querySelector('input[type=checkbox]').onchange = async (e) => {
