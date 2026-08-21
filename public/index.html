@@ -494,6 +494,12 @@
           <option value="ambas">Sin ninguna de las dos</option>
         </select>
         <input type="text" id="buscarSinFactura" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+        <select id="ordenSinFactura">
+          <option value="fecha_desc">Fecha: más reciente primero</option>
+          <option value="fecha_asc">Fecha: más antiguo primero</option>
+          <option value="monto_asc">Monto: menor a mayor</option>
+          <option value="monto_desc">Monto: mayor a menor</option>
+        </select>
       </div>
       <div id="listaSinFactura"></div>
     </div>
@@ -1505,6 +1511,7 @@
   /* ---------- FACTURAS PENDIENTES ---------- */
   document.getElementById('filtroTipoFactura').onchange = renderSinFactura;
   document.getElementById('buscarSinFactura').oninput = renderSinFactura;
+  document.getElementById('ordenSinFactura').onchange = renderSinFactura;
 
   function textoReclamoFactura(p) {
     return `Hola! Te escribo por la compra "${p.titulo || ''}" (pedido #${p.numero_operacion || p.order_id}) del ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}.\n\n` +
@@ -1514,6 +1521,7 @@
   function renderSinFactura() {
     const tipo = document.getElementById('filtroTipoFactura').value;
     const busqueda = document.getElementById('buscarSinFactura').value.toLowerCase();
+    const orden = document.getElementById('ordenSinFactura').value;
 
     let pedidos = TODOS.filter(p => {
       if (tipo === 'ml') return !p.factura_ml_id;
@@ -1521,7 +1529,14 @@
       return !p.factura_ml_id && !p.factura_adjunta;
     });
     pedidos = pedidos.filter(p => !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda));
-    pedidos.sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    const ordenadoresSF = {
+      fecha_desc: (a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion),
+      fecha_asc: (a,b) => new Date(a.fecha_creacion) - new Date(b.fecha_creacion),
+      monto_asc: (a,b) => montoReal(a) - montoReal(b),
+      monto_desc: (a,b) => montoReal(b) - montoReal(a),
+    };
+    pedidos.sort(ordenadoresSF[orden] || ordenadoresSF.fecha_desc);
 
     const sinMl = TODOS.filter(p => !p.factura_ml_id).length;
     const sinManual = TODOS.filter(p => !p.factura_adjunta).length;
