@@ -223,6 +223,7 @@
       <div class="nav-section">Principal</div>
       <div class="nav-item active" data-pagina="inicio"><span class="ic"><i class="ti ti-home"></i></span> Inicio</div>
       <div class="nav-item" data-pagina="pedidos"><span class="ic"><i class="ti ti-shopping-bag"></i></span> Pedidos</div>
+      <div class="nav-item" data-pagina="historial"><span class="ic"><i class="ti ti-history"></i></span> Historial</div>
       <div class="nav-item" data-pagina="escanear"><span class="ic"><i class="ti ti-barcode"></i></span> Escanear</div>
 
       <div class="nav-section">Reportes</div>
@@ -280,6 +281,11 @@
             <div class="acceso-icon"><i class="ti ti-shopping-bag"></i></div>
             <div class="acceso-nombre">Todos los pedidos</div>
             <div class="acceso-desc">Lista completa, con fotos y precio unitario</div>
+          </div>
+          <div class="acceso-card" data-ir="historial">
+            <div class="acceso-icon"><i class="ti ti-history"></i></div>
+            <div class="acceso-nombre">Historial cronológico</div>
+            <div class="acceso-desc">Todo lo que compraste, en orden de fecha</div>
           </div>
           <div class="acceso-card" data-ir="escanear">
             <div class="acceso-icon"><i class="ti ti-barcode"></i></div>
@@ -362,6 +368,27 @@
           </span>
         </h3>
         <div id="recientes"></div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="pagina" id="pagina-historial">
+      <div class="stats" id="statsHistorial"></div>
+      <div class="filtros">
+        <input type="text" id="buscarHistorial" placeholder="Buscar por título o vendedor..." style="flex:1; min-width:200px;" />
+        <select id="filtroLlegadaHistorial">
+          <option value="">Todos</option>
+          <option value="si">Llegaron</option>
+          <option value="no">No llegaron todavía</option>
+        </select>
+      </div>
+      <div class="panel" style="padding:0; overflow-x:auto;">
+        <table class="productos" id="tablaHistorial">
+          <thead><tr>
+            <th></th><th>Producto</th><th>Fecha</th><th>Vendedor</th><th class="th-num">Total</th><th>Estado</th><th>¿Llegó?</th>
+          </tr></thead>
+          <tbody id="tbodyHistorial"></tbody>
+        </table>
       </div>
     </div>
 
@@ -545,7 +572,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -554,6 +581,7 @@
     document.getElementById('tituloPagina').textContent = nombresPagina[pag];
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
     if (pag === 'inicio') renderInicio();
+    if (pag === 'historial') renderHistorial();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
     if (pag === 'reclamos') renderReclamos();
@@ -1360,6 +1388,53 @@
         cargarPedidos();
       };
       listaEl.appendChild(div);
+    }
+  }
+
+  /* ---------- HISTORIAL CRONOLÓGICO ---------- */
+  document.getElementById('buscarHistorial').oninput = renderHistorial;
+  document.getElementById('filtroLlegadaHistorial').onchange = renderHistorial;
+
+  function renderHistorial() {
+    const busqueda = document.getElementById('buscarHistorial').value.toLowerCase();
+    const filtroLlegada = document.getElementById('filtroLlegadaHistorial').value;
+
+    let pedidos = [...TODOS].sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    pedidos = pedidos.filter(p => {
+      const matchBusqueda = !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda);
+      const matchLlegada = !filtroLlegada || (filtroLlegada === 'si' ? p.verificado_por_mi : !p.verificado_por_mi);
+      return matchBusqueda && matchLlegada;
+    });
+
+    const llegaron = TODOS.filter(p => p.verificado_por_mi).length;
+    const noLlegaron = TODOS.length - llegaron;
+    document.getElementById('statsHistorial').innerHTML = `
+      <div class="stat"><div class="num">${TODOS.length}</div><div class="lbl">Total histórico</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${llegaron}</div><div class="lbl">Marcados como llegados</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${noLlegaron}</div><div class="lbl">Todavía no llegaron</div></div>
+    `;
+
+    const tbody = document.getElementById('tbodyHistorial');
+    if (!pedidos.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty">No hay pedidos que coincidan.</td></tr>`; return; }
+
+    tbody.innerHTML = '';
+    for (const p of pedidos) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
+        <td><div class="nombre" style="max-width:260px;" title="${(p.titulo||'').replace(/"/g,'')}">${p.titulo || 'Pedido #'+p.order_id}</div></td>
+        <td style="font-size:12px; color:var(--muted);">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '-'}</td>
+        <td style="font-size:12px;">${p.vendedor_nickname || '-'}</td>
+        <td class="td-num precio-total">${fmtExacto(montoReal(p))}</td>
+        <td><span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>${p.logistic_type === 'self_service' ? ' <span class="badge flex">⚡</span>' : ''}</td>
+        <td><input type="checkbox" ${p.verificado_por_mi?'checked':''} /></td>
+      `;
+      tr.querySelector('input[type=checkbox]').onchange = async (e) => {
+        await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', p.order_id);
+        p.verificado_por_mi = e.target.checked;
+        renderHistorial();
+      };
+      tbody.appendChild(tr);
     }
   }
 
