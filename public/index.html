@@ -1095,7 +1095,15 @@
 
   function buscarPorTracking(codigo) {
     const codigoLimpio = String(codigo).trim();
-    return TODOS.find(p => p.tracking_number && String(p.tracking_number).trim() === codigoLimpio);
+    return TODOS.find(p => {
+      const candidatos = [
+        p.tracking_number,
+        p.pack_id,
+        p.order_id,
+        p.raw_shipping?.id, // el ID del envío, que a veces es lo que imprime el código de barras
+      ].filter(Boolean).map(String);
+      return candidatos.includes(codigoLimpio);
+    });
   }
 
   function mostrarResultadoScan(pedido, codigoEscaneado) {
