@@ -1,11 +1,13 @@
-// GET /api/sync?offset=0&limit=40
-// Procesa UN LOTE de pedidos por llamada (no todos de una), para no
-// pasarse del tiempo máximo de ejecución de Vercel. El frontend llama
-// este endpoint repetidas veces, avanzando el offset, hasta terminar.
+// GET /api/sync?offset=0&limit=40&from=2026-08-01T00:00:00.000-00:00&to=2026-09-01T00:00:00.000-00:00
 //
-// Si un pedido YA tiene foto/categoría guardada de una sync anterior,
-// no vuelve a pedirla a la API de ML (ahorra llamadas y tiempo) —
-// solo refresca los datos que sí pueden cambiar (estado, tracking).
+// Trae pedidos DE UN RANGO DE FECHAS puntual (normalmente un mes), de a
+// lotes. Buscar por rango en vez de pedirle "todo" a ML de una evita
+// cualquier límite interno que tenga /orders/search sobre el total de
+// resultados de una sola búsqueda — partiendo por mes, cada búsqueda
+// individual es chica.
+//
+// Si no se manda from/to, busca sin filtro de fecha (comportamiento viejo,
+// se usa para el chequeo liviano de "lo más reciente").
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -56,18 +58,6 @@ async function getInfoProducto(itemId, accessToken) {
   } catch { return { foto: null, sku: null, link: null }; }
 }
 
-async function getFacturaVendedor(packId, accessToken) {
-  if (!packId) return null;
-  try {
-    const resp = await fetch(`https://api.mercadolibre.com/packs/${packId}/fiscal_documents`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!resp.ok) return null; // 404 = no tiene factura cargada, es normal
-    const data = await resp.json();
-    const doc = (data.fiscal_documents || [])[0];
-    if (!doc) return null;
-    return { id: doc.id, filename: doc.filename, fecha: doc.date };
-  } catch { return null; }
-}
-
 async function getDescuentos(orderId, accessToken) {
   try {
     const resp = await fetch(`https://api.mercadolibre.com/orders/${orderId}/discounts`, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -82,6 +72,18 @@ async function getDescuentos(orderId, accessToken) {
   } catch { return { descuento: 0, cupon: 0 }; }
 }
 
+async function getFacturaVendedor(packId, accessToken) {
+  if (!packId) return null;
+  try {
+    const resp = await fetch(`https://api.mercadolibre.com/packs/${packId}/fiscal_documents`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const doc = (data.fiscal_documents || [])[0];
+    if (!doc) return null;
+    return { id: doc.id, filename: doc.filename, fecha: doc.date };
+  } catch { return null; }
+}
+
 export default async function handler(req, res) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -94,16 +96,18 @@ export default async function handler(req, res) {
 
   const offset = Number(req.query?.offset) || 0;
   const limit = Math.min(Number(req.query?.limit) || 40, 50);
+  const { from, to } = req.query || {};
 
   let procesados = 0, guardados = 0, nuevos = 0, cambiosEstado = 0;
 
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
 
-    const ordersResp = await fetch(
-      `https://api.mercadolibre.com/orders/search?buyer=${authRow.user_id}&sort=date_desc&offset=${offset}&limit=${limit}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    let url = `https://api.mercadolibre.com/orders/search?buyer=${authRow.user_id}&sort=date_desc&offset=${offset}&limit=${limit}`;
+    if (from) url += `&order.date_created.from=${encodeURIComponent(from)}`;
+    if (to) url += `&order.date_created.to=${encodeURIComponent(to)}`;
+
+    const ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const ordersData = await ordersResp.json();
     if (!ordersResp.ok) {
       return res.status(400).json({ error: 'Error consultando pedidos', detail: ordersData });
@@ -130,26 +134,17 @@ export default async function handler(req, res) {
 
       const primerItem = order.order_items?.[0]?.item;
 
-      // Solo pedimos foto/categoría/sku a la API si TODAVÍA no los tenemos guardados
       let categoriaNombre = existente?.categoria_nombre || null;
       let infoProducto = { foto: existente?.imagen_url || null, sku: existente?.sku || null, link: existente?.link_publicacion || null };
       let descuentoInfo = { descuento: null, cupon: null };
 
-      if (!existente || !existente.imagen_url) {
-        infoProducto = await getInfoProducto(primerItem?.id, accessToken);
-      }
-      if (!existente || !existente.categoria_nombre) {
-        categoriaNombre = await getCategoriaNombre(primerItem?.category_id, accessToken);
-      }
-      if (esNuevo) {
-        descuentoInfo = await getDescuentos(order.id, accessToken);
-      }
+      if (!existente || !existente.imagen_url) infoProducto = await getInfoProducto(primerItem?.id, accessToken);
+      if (!existente || !existente.categoria_nombre) categoriaNombre = await getCategoriaNombre(primerItem?.category_id, accessToken);
+      if (esNuevo) descuentoInfo = await getDescuentos(order.id, accessToken);
 
-      // Factura del vendedor: solo la consultamos si todavía no la teníamos guardada
       let facturaVendedor = null;
       if (!existente || !existente.factura_ml_id) {
-        const packRef = order.pack_id || order.id;
-        facturaVendedor = await getFacturaVendedor(packRef, accessToken);
+        facturaVendedor = await getFacturaVendedor(order.pack_id || order.id, accessToken);
       }
 
       const metodoPago = order.payments?.[0]?.payment_type || null;
@@ -158,18 +153,10 @@ export default async function handler(req, res) {
       const precioUnitario = order.order_items?.[0]?.unit_price ?? null;
       const cantidadUnidades = order.order_items?.[0]?.quantity ?? 1;
       const variante = (primerItem?.variation_attributes || []).map(a => a.value_name).join(' / ') || null;
-
-      // Tipo logístico real (self_service = Flex; fulfillment/drop_off/cross_docking = normal)
       const logisticType = shipInfo?.logistic_type || null;
-
-      // Punto de retiro: solo si ML devuelve esos datos en el destino del envío (no todos los pedidos lo tienen)
       const destinoTipo = shipInfo?.destination?.type || null;
       const destinoDireccion = shipInfo?.destination?.shipping_address?.address_line || null;
-
-      // Costo real de envío según el tipo de logística
       const costoEnvio = shipInfo?.shipping_option?.cost ?? null;
-
-      // Detección de cambio de fecha estimada respecto a la última sync
       const fechaEstimadaNueva = shipInfo?.shipping_option?.estimated_delivery_time?.date || null;
       const fechaEstimadaCambio = !!(existente?.fecha_estimada && fechaEstimadaNueva && existente.fecha_estimada !== fechaEstimadaNueva);
 
@@ -244,14 +231,9 @@ export default async function handler(req, res) {
     }
 
     const done = offset + limit >= total;
-    if (done) {
-      await supabase.from('sync_logs').insert({ ok: true, procesados, guardados, nuevos, cambios_estado: cambiosEstado });
-    }
-
     res.status(200).json({ ok: true, total_ml: total, procesados, guardados, nuevos, cambios_estado: cambiosEstado, offset, limit, next_offset: offset + limit, done });
   } catch (err) {
     console.error(err);
-    await supabase.from('sync_logs').insert({ ok: false, procesados, guardados, nuevos, cambios_estado: cambiosEstado, error: String(err) });
     res.status(500).json({ error: 'Error inesperado', detail: String(err) });
   }
 }

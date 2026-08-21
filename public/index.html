@@ -563,37 +563,55 @@
 
   let sincronizando = false;
 
+  function rangosDeLos12Meses() {
+    const rangos = [];
+    const ahora = new Date();
+    for (let i = 0; i < 12; i++) {
+      const inicio = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+      const fin = new Date(ahora.getFullYear(), ahora.getMonth() - i + 1, 1);
+      const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T00:00:00.000-00:00`;
+      rangos.push({ from: fmt(inicio), to: fmt(fin), label: inicio.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) });
+    }
+    return rangos;
+  }
+
   async function sincronizarCompleto() {
     if (sincronizando) return;
     sincronizando = true;
-    let offset = 0;
-    const limit = 40;
-    let totalAcum = { guardados: 0, nuevos: 0, cambios_estado: 0 };
-    let total = null;
-
     document.getElementById('btnSync').disabled = true;
-    while (true) {
-      try {
-        const resp = await fetch(`/api/sync?offset=${offset}&limit=${limit}`);
-        const data = await resp.json();
-        if (!resp.ok) { estadoEl.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
-        total = data.total_ml;
-        totalAcum.guardados += data.guardados;
-        totalAcum.nuevos += data.nuevos;
-        totalAcum.cambios_estado += data.cambios_estado;
 
-        const pct = total ? Math.min(100, Math.round((data.next_offset / total) * 100)) : 100;
-        estadoEl.innerHTML = `Sincronizando... ${Math.min(data.next_offset, total)} / ${total}
-          <span class="progreso-wrap"><span class="progreso-bar" style="width:${pct}%"></span></span>`;
-        cargarPedidos(); // refresca la vista a medida que van entrando
+    const rangos = rangosDeLos12Meses();
+    let totalAcum = { guardados: 0, nuevos: 0, cambios_estado: 0 };
 
-        if (data.done) {
-          estadoEl.textContent = `Sincronización completa — ${totalAcum.guardados} pedidos, ${totalAcum.nuevos} nuevos, ${totalAcum.cambios_estado} cambios de estado. (${new Date().toLocaleTimeString('es-AR')})`;
-          break;
-        }
-        offset = data.next_offset;
-      } catch (e) { estadoEl.textContent = 'Error de red: ' + e.message; break; }
+    for (let m = 0; m < rangos.length; m++) {
+      const { from, to, label } = rangos[m];
+      let offset = 0;
+      const limit = 40;
+      let totalMes = Infinity;
+
+      while (offset < totalMes) {
+        try {
+          const resp = await fetch(`/api/sync?offset=${offset}&limit=${limit}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+          const data = await resp.json();
+          if (!resp.ok) { estadoEl.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
+
+          totalMes = data.total_ml;
+          totalAcum.guardados += data.guardados;
+          totalAcum.nuevos += data.nuevos;
+          totalAcum.cambios_estado += data.cambios_estado;
+
+          const pctMes = Math.min(100, Math.round(((m + (totalMes ? offset/Math.max(totalMes,limit) : 1)) / rangos.length) * 100));
+          estadoEl.innerHTML = `Sincronizando ${label}... (mes ${m+1}/12) — ${totalAcum.guardados} pedidos hasta ahora
+            <span class="progreso-wrap"><span class="progreso-bar" style="width:${pctMes}%"></span></span>`;
+          cargarPedidos();
+
+          if (data.done) break;
+          offset = data.next_offset;
+        } catch (e) { estadoEl.textContent = 'Error de red: ' + e.message; break; }
+      }
     }
+
+    estadoEl.textContent = `Sincronización completa (últimos 12 meses) — ${totalAcum.guardados} pedidos, ${totalAcum.nuevos} nuevos, ${totalAcum.cambios_estado} cambios de estado. (${new Date().toLocaleTimeString('es-AR')})`;
     document.getElementById('btnSync').disabled = false;
     sincronizando = false;
   }
