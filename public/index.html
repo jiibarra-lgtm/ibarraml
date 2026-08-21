@@ -1533,12 +1533,19 @@
     };
     pedidos.sort(ordenadoresSF[orden] || ordenadoresSF.fecha_desc);
 
-    const sinMl = TODOS.filter(p => !p.factura_ml_id).length;
-    const sinManual = TODOS.filter(p => !p.factura_adjunta).length;
+    const sinMl = TODOS.filter(p => !p.factura_ml_id);
+    const sinManual = TODOS.filter(p => !p.factura_adjunta);
+    const montoSinMl = sinMl.reduce((a,p) => a + (montoReal(p)||0), 0);
+    const montoSinManual = sinManual.reduce((a,p) => a + (montoReal(p)||0), 0);
+    const montoMostrando = pedidos.reduce((a,p) => a + (montoReal(p)||0), 0);
+
     document.getElementById('statsSinFactura').innerHTML = `
-      <div class="stat"><div class="num" style="color:var(--warn)">${sinMl}</div><div class="lbl">Sin factura del vendedor</div></div>
-      <div class="stat"><div class="num" style="color:var(--bad)">${sinManual}</div><div class="lbl">Sin tu factura manual</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${sinMl.length}</div><div class="lbl">Sin factura del vendedor</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${fmtMoneda(montoSinMl)}</div><div class="lbl">Monto sin factura del vendedor</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${sinManual.length}</div><div class="lbl">Sin tu factura manual</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${fmtMoneda(montoSinManual)}</div><div class="lbl">Monto sin tu factura manual</div></div>
       <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Mostrando ahora</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(montoMostrando)}</div><div class="lbl">Monto de lo que se muestra</div></div>
     `;
 
     const cont = document.getElementById('listaSinFactura');
