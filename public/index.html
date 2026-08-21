@@ -728,8 +728,8 @@
   }
   function nombreGenerico(p) { return p.producto_generico || p.categoria_nombre || 'Sin nombre'; }
   function urlCompraML(p) {
-    const id = p.pack_id || p.order_id;
-    return `https://myaccount.mercadolibre.com.ar/my_purchases/${id}/status?packId=${id}&orderId=${p.order_id}`;
+    const id = p.order_id;
+    return `https://myaccount.mercadolibre.com.ar/my_purchases/${id}/status?packId=${id}&orderId=${id}`;
   }
   function montoReal(p) {
     const t = Number(p.total) || 0;
