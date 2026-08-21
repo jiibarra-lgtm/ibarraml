@@ -1118,6 +1118,7 @@
     TODOS = todosLosPedidos;
     renderizarPedidos();
     renderInicio();
+    if (document.getElementById('pagina-historial')?.classList.contains('activa')) renderHistorial();
   }
 
   /* ---------- SCANNER DE PAQUETES ---------- */

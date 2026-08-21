@@ -51,10 +51,23 @@ async function getCategoriaNombre(categoryId, accessToken) {
 async function getInfoProducto(itemId, accessToken) {
   if (!itemId) return { foto: null, sku: null, link: null };
   try {
-    const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail,seller_custom_field,permalink`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!resp.ok) return { foto: null, sku: null, link: null };
-    const data = await resp.json();
-    return { foto: data.secure_thumbnail || data.thumbnail || null, sku: data.seller_custom_field || null, link: data.permalink || null };
+    // Intento 1: pedido liviano, solo los campos que necesitamos
+    const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail,seller_custom_field,permalink,pictures`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (resp.ok) {
+      const data = await resp.json();
+      const foto = data.secure_thumbnail || data.thumbnail || data.pictures?.[0]?.secure_url || data.pictures?.[0]?.url || null;
+      if (foto) return { foto, sku: data.seller_custom_field || null, link: data.permalink || null };
+    }
+    // Intento 2 (respaldo): pedido del ítem completo, por si la publicación está pausada/cerrada
+    // y el filtro de atributos liviano no devuelve nada
+    const resp2 = await fetch(`https://api.mercadolibre.com/items/${itemId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp2.ok) return { foto: null, sku: null, link: null };
+    const data2 = await resp2.json();
+    return {
+      foto: data2.secure_thumbnail || data2.thumbnail || data2.pictures?.[0]?.secure_url || data2.pictures?.[0]?.url || null,
+      sku: data2.seller_custom_field || null,
+      link: data2.permalink || null,
+    };
   } catch { return { foto: null, sku: null, link: null }; }
 }
 
