@@ -66,6 +66,8 @@
   .btn-outline{background:var(--card); border:1px solid var(--border); color:var(--text);}
   .btn-outline:hover{background:var(--indigo-l);}
   #estado{font-size:12px; color:var(--teal); margin-bottom:14px; min-height:14px;}
+  .progreso-wrap{background:var(--border); border-radius:20px; height:6px; width:200px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:8px;}
+  .progreso-bar{background:var(--teal); height:100%; width:0%; transition:width .3s;}
 
   .pagina{display:none;}
   .pagina.activa{display:block;}
@@ -205,8 +207,8 @@
         <div class="sub">Compras en Mercado Libre, sincronizadas y ordenadas.</div>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-outline" id="btnConectar">Conectar ML</button>
-        <button class="btn btn-primary" id="btnSync">Actualizar ahora</button>
+        <button class="btn btn-outline" id="btnConectar" title="Solo la primera vez, para autorizar tu cuenta">Conectar Mercado Libre</button>
+        <button class="btn btn-primary" id="btnSync" title="Trae pedidos nuevos y actualiza fotos faltantes">Sincronizar</button>
       </div>
     </div>
     <div id="estado"></div>
@@ -416,18 +418,56 @@
 
   document.getElementById('btnConectar').onclick = () => window.location.href = '/api/login';
 
-  async function sincronizar(silencioso) {
-    if (!silencioso) estadoEl.textContent = 'Sincronizando con Mercado Libre...';
-    try {
-      const resp = await fetch('/api/sync');
-      const data = await resp.json();
-      if (resp.ok) {
-        estadoEl.textContent = `Sincronización completa — ${data.guardados} pedidos actualizados, ${data.nuevos} nuevos, ${data.cambios_estado} cambios de estado. (${new Date().toLocaleTimeString('es-AR')})`;
-        cargarPedidos();
-      } else if (!silencioso) estadoEl.textContent = 'Error: ' + (data.error || 'desconocido');
-    } catch (e) { if (!silencioso) estadoEl.textContent = 'Error de red: ' + e.message; }
+  let sincronizando = false;
+
+  async function sincronizarCompleto() {
+    if (sincronizando) return;
+    sincronizando = true;
+    let offset = 0;
+    const limit = 40;
+    let totalAcum = { guardados: 0, nuevos: 0, cambios_estado: 0 };
+    let total = null;
+
+    document.getElementById('btnSync').disabled = true;
+    while (true) {
+      try {
+        const resp = await fetch(`/api/sync?offset=${offset}&limit=${limit}`);
+        const data = await resp.json();
+        if (!resp.ok) { estadoEl.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
+        total = data.total_ml;
+        totalAcum.guardados += data.guardados;
+        totalAcum.nuevos += data.nuevos;
+        totalAcum.cambios_estado += data.cambios_estado;
+
+        const pct = total ? Math.min(100, Math.round((data.next_offset / total) * 100)) : 100;
+        estadoEl.innerHTML = `Sincronizando... ${Math.min(data.next_offset, total)} / ${total}
+          <span class="progreso-wrap"><span class="progreso-bar" style="width:${pct}%"></span></span>`;
+        cargarPedidos(); // refresca la vista a medida que van entrando
+
+        if (data.done) {
+          estadoEl.textContent = `Sincronización completa — ${totalAcum.guardados} pedidos, ${totalAcum.nuevos} nuevos, ${totalAcum.cambios_estado} cambios de estado. (${new Date().toLocaleTimeString('es-AR')})`;
+          break;
+        }
+        offset = data.next_offset;
+      } catch (e) { estadoEl.textContent = 'Error de red: ' + e.message; break; }
+    }
+    document.getElementById('btnSync').disabled = false;
+    sincronizando = false;
   }
-  document.getElementById('btnSync').onclick = () => sincronizar(false);
+
+  async function sincronizarLiviano() {
+    // Se usa en el auto-sync de 20s: solo revisa los pedidos más recientes,
+    // rápido y sin sobrecargar. La sync completa (con fotos de todo el
+    // historial) se hace con el botón "Sincronizar".
+    if (sincronizando) return;
+    try {
+      const resp = await fetch('/api/sync?offset=0&limit=20');
+      const data = await resp.json();
+      if (resp.ok) cargarPedidos();
+    } catch {}
+  }
+
+  document.getElementById('btnSync').onclick = () => sincronizarCompleto();
   document.getElementById('buscar').oninput = renderizarPedidos;
   document.getElementById('filtroEstado').onchange = renderizarPedidos;
 
@@ -454,6 +494,12 @@
     const t = Number(p.total) || 0;
     if (p.moneda_original && p.tipo_cambio) return t * Number(p.tipo_cambio);
     return t;
+  }
+  function margenTexto(p) {
+    if (p.precio_venta == null || p.precio_compra == null) return '-';
+    const margen = p.precio_venta - p.precio_compra;
+    const pct = p.precio_compra > 0 ? (margen / p.precio_compra) * 100 : 0;
+    return `${fmtExacto(margen)} (${pct.toFixed(1)}%)`;
   }
 
   /* ---------- INICIO ---------- */
@@ -623,6 +669,8 @@
     td.innerHTML = `
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
         <div class="campo"><label>Precio de compra</label><input type="number" step="0.01" class="c-precio" value="${p.precio_compra??''}" /></div>
+        <div class="campo"><label>Precio de venta</label><input type="number" step="0.01" class="c-precioventa" value="${p.precio_venta??''}" /></div>
+        <div class="campo"><label>Margen</label><input type="text" value="${margenTexto(p)}" disabled /></div>
         <div class="campo"><label>Rubro</label><input type="text" class="c-rubro" value="${p.rubro??''}" placeholder="ej: limpieza" /></div>
         <div class="campo"><label>Nombre general (ranking)</label><input type="text" class="c-generico" value="${p.producto_generico??''}" placeholder="ej: guantes nitrilo" /></div>
         <div class="campo"><label>IVA (monto)</label><input type="number" step="0.01" class="c-iva" value="${p.iva_monto??''}" /></div>
@@ -631,12 +679,25 @@
         <div class="campo"><label>Método de pago</label><input type="text" value="${p.metodo_pago||'-'}" disabled /></div>
         <div class="campo"><label>Notas</label><input type="text" class="c-notas" value="${p.notas??''}" /></div>
         <div class="campo"><label>Comentarios internos</label><input type="text" class="c-comentarios" value="${p.comentarios??''}" /></div>
-        <div class="campo check"><input type="checkbox" class="c-factura" ${p.factura_adjunta?'checked':''} /><label>Factura adjunta</label></div>
         <div class="campo check"><input type="checkbox" class="c-deducible" ${p.deducible?'checked':''} /><label>Deducible</label></div>
         <div class="campo check"><input type="checkbox" class="c-cotizador" ${p.cargado_en_cotizador?'checked':''} /><label>Cargado en Cotizador</label></div>
-        <div class="campo"><label>Subir factura</label><input type="file" class="c-archivo" accept=".pdf,image/*" /></div>
-        ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver factura</a>` : ''}
         <button class="btn btn-primary c-guardar" style="padding:6px 12px; font-size:12px;">Guardar</button>
+      </div>
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Factura del vendedor (Mercado Libre)</div>
+          ${p.factura_ml_id
+            ? `<a class="link-factura" href="/api/factura-ml?pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}" target="_blank">📄 ${p.factura_ml_filename || 'Ver factura'} (${p.factura_ml_fecha ? new Date(p.factura_ml_fecha).toLocaleDateString('es-AR') : ''})</a>`
+            : `<span style="font-size:12px; color:var(--muted);">El vendedor todavía no subió factura por Mercado Libre.</span>`}
+        </div>
+        <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Tu factura (carga manual)</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div class="campo check"><input type="checkbox" class="c-factura" ${p.factura_adjunta?'checked':''} /><label>Factura adjunta</label></div>
+            <input type="file" class="c-archivo" accept=".pdf,image/*" style="font-size:11px;" />
+            ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver la que subiste</a>` : ''}
+          </div>
+        </div>
       </div>
     `;
     tr.appendChild(td);
@@ -651,10 +712,14 @@
         if (!upErr) facturaUrl = db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl;
         else alert('Error subiendo factura: ' + upErr.message);
       }
+      const genericoNuevo = td.querySelector('.c-generico').value || null;
+      const precioActual = p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null);
+
       await db.from('pedidos').update({
         precio_compra: td.querySelector('.c-precio').value ? Number(td.querySelector('.c-precio').value) : null,
+        precio_venta: td.querySelector('.c-precioventa').value ? Number(td.querySelector('.c-precioventa').value) : null,
         rubro: td.querySelector('.c-rubro').value || null,
-        producto_generico: td.querySelector('.c-generico').value || null,
+        producto_generico: genericoNuevo,
         iva_monto: td.querySelector('.c-iva').value ? Number(td.querySelector('.c-iva').value) : null,
         moneda_original: td.querySelector('.c-monedaorig').value || null,
         tipo_cambio: td.querySelector('.c-tc').value ? Number(td.querySelector('.c-tc').value) : null,
@@ -665,6 +730,23 @@
         cargado_en_cotizador: td.querySelector('.c-cotizador').checked,
         factura_url: facturaUrl,
       }).eq('order_id', p.order_id);
+
+      // Alerta de aumento de precio: comparamos contra la última vez que compramos
+      // este mismo "nombre genérico" (si ya tenía historial cargado)
+      if (genericoNuevo && precioActual) {
+        const { data: historialPrevio } = await db.from('price_history')
+          .select('precio_unitario').eq('producto_generico', genericoNuevo)
+          .order('fecha', { ascending: false }).limit(1);
+        if (historialPrevio && historialPrevio[0] && historialPrevio[0].precio_unitario) {
+          const anterior = historialPrevio[0].precio_unitario;
+          const variacionPct = ((precioActual - anterior) / anterior) * 100;
+          if (variacionPct > 15) {
+            alert(`⚠ El precio de "${genericoNuevo}" subió ${variacionPct.toFixed(1)}% respecto a la última compra (${fmtExacto(anterior)} → ${fmtExacto(precioActual)}).`);
+          }
+        }
+        await db.from('price_history').insert({ producto_generico: genericoNuevo, order_id: p.order_id, precio_unitario: precioActual });
+      }
+
       btn.textContent = 'Guardado ✓';
       setTimeout(() => cargarPedidos(), 500);
     };
@@ -771,8 +853,8 @@
   function init() {
     cargarConfig();
     cargarPedidos();
-    sincronizar(true);
-    setInterval(() => sincronizar(true), 20000);
+    sincronizarCompleto(); // primera vez: trae todo con fotos
+    setInterval(() => sincronizarLiviano(), 20000); // después: solo chequeos rápidos
   }
 </script>
 </body>
