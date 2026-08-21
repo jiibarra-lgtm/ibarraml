@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root{
     --indigo:#4f46e5; --indigo-d:#3730a3; --indigo-l:#eef2ff; --teal:#0d9488; --teal-l:#14b8a6;
@@ -145,6 +146,20 @@
   .recientes-item{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;}
   .recientes-item:last-child{border-bottom:none;}
 
+  .reclamo-item{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+  .reclamo-plazo{font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px;}
+  .reclamo-plazo.urgente{background:rgba(220,38,38,.12); color:var(--bad);}
+  .reclamo-plazo.ok{background:rgba(217,119,6,.12); color:var(--warn);}
+
+  @media print {
+    body { background:#fff !important; }
+    aside, .topbar-actions, #estado, .sidebar-footer, .bienvenida-fecha { display:none !important; }
+    #shell { display:block !important; }
+    main { padding:0; max-width:100%; }
+    .pagina:not(.activa) { display:none !important; }
+    .panel { border:1px solid #ccc !important; break-inside:avoid; }
+  }
+
   /* --- Bienvenida (home tipo Cotizador) --- */
   .bienvenida-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px;}
   .bienvenida-eyebrow{font-size:11px; font-weight:700; color:var(--indigo); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;}
@@ -183,6 +198,7 @@
       <div class="nav-section">Principal</div>
       <div class="nav-item active" data-pagina="inicio"><span class="ic"><i class="ti ti-home"></i></span> Inicio</div>
       <div class="nav-item" data-pagina="pedidos"><span class="ic"><i class="ti ti-shopping-bag"></i></span> Pedidos</div>
+      <div class="nav-item" data-pagina="escanear"><span class="ic"><i class="ti ti-barcode"></i></span> Escanear</div>
 
       <div class="nav-section">Reportes</div>
       <div class="nav-item" data-pagina="graficos"><span class="ic"><i class="ti ti-chart-pie"></i></span> Gráficos</div>
@@ -190,6 +206,11 @@
       <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
+
+      <div class="nav-section">Análisis</div>
+      <div class="nav-item" data-pagina="resumen"><span class="ic"><i class="ti ti-file-text"></i></span> Resumen mensual</div>
+      <div class="nav-item" data-pagina="anual"><span class="ic"><i class="ti ti-calendar-stats"></i></span> Comparativo anual</div>
+      <div class="nav-item" data-pagina="reclamos"><span class="ic"><i class="ti ti-alert-triangle"></i></span> Devoluciones y reclamos</div>
 
       <div class="nav-section">Sistema</div>
       <div class="nav-item" data-pagina="config"><span class="ic"><i class="ti ti-settings"></i></span> Configuración</div>
@@ -231,6 +252,11 @@
             <div class="acceso-icon"><i class="ti ti-shopping-bag"></i></div>
             <div class="acceso-nombre">Todos los pedidos</div>
             <div class="acceso-desc">Lista completa, con fotos y precio unitario</div>
+          </div>
+          <div class="acceso-card" data-ir="escanear">
+            <div class="acceso-icon"><i class="ti ti-barcode"></i></div>
+            <div class="acceso-nombre">Escanear paquete</div>
+            <div class="acceso-desc">Tildar como recibido con la cámara</div>
           </div>
         </div>
       </div>
@@ -277,12 +303,55 @@
         </div>
       </div>
 
+      <div class="grupo-accesos">
+        <div class="titulo-grupo">Análisis</div>
+        <div class="grid-accesos">
+          <div class="acceso-card" data-ir="resumen">
+            <div class="acceso-icon"><i class="ti ti-file-text"></i></div>
+            <div class="acceso-nombre">Resumen mensual</div>
+            <div class="acceso-desc">Para exportar, imprimir o mandar</div>
+          </div>
+          <div class="acceso-card" data-ir="anual">
+            <div class="acceso-icon"><i class="ti ti-calendar-stats"></i></div>
+            <div class="acceso-nombre">Comparativo anual</div>
+            <div class="acceso-desc">Este año vs. el anterior, mes a mes</div>
+          </div>
+          <div class="acceso-card" data-ir="reclamos">
+            <div class="acceso-icon"><i class="ti ti-alert-triangle"></i></div>
+            <div class="acceso-nombre">Devoluciones y reclamos</div>
+            <div class="acceso-desc">Seguimiento de problemas pendientes</div>
+          </div>
+        </div>
+      </div>
+
       <div class="stats" id="statsInicio" style="margin-top:6px;"></div>
       <div class="alertas" id="alertasInicio"></div>
       <div class="panel">
         <h3>Últimos pedidos</h3>
         <div id="recientes"></div>
       </div>
+    </div>
+
+    <!-- ESCANEAR -->
+    <div class="pagina" id="pagina-escanear">
+      <div class="panel" style="max-width:480px;">
+        <h3>Escanear paquete</h3>
+        <p style="color:var(--muted); font-size:12.5px; margin-bottom:12px;">
+          Apuntá la cámara al código de barras de la etiqueta de envío. Si lo lee, lo comparamos contra el tracking de tus pedidos.
+        </p>
+        <div id="lectorQR" style="width:100%; border-radius:10px; overflow:hidden; border:1px solid var(--border); margin-bottom:12px;"></div>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="btn btn-primary" id="btnIniciarScan">Iniciar cámara</button>
+          <button class="btn btn-outline" id="btnDetenerScan" style="display:none;">Detener</button>
+        </div>
+        <div class="campo" style="width:100%;">
+          <label>O escribilo a mano</label>
+          <input type="text" id="trackingManual" placeholder="Número de tracking" style="width:100%;" />
+        </div>
+        <button class="btn btn-outline" id="btnBuscarManual" style="margin-top:8px;">Buscar</button>
+      </div>
+
+      <div id="resultadoScan" style="max-width:480px; margin-top:14px;"></div>
     </div>
 
     <!-- PEDIDOS -->
@@ -331,6 +400,42 @@
     <!-- CONCILIACION -->
     <div class="pagina" id="pagina-conciliacion">
       <div class="panel"><h3>Conciliación con Cotizador</h3><table class="reporte" id="tablaConciliacion"></table></div>
+    </div>
+
+    <!-- RESUMEN MENSUAL -->
+    <div class="pagina" id="pagina-resumen">
+      <div class="panel" id="resumenMensualContenido"></div>
+      <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+        <button class="btn btn-outline" id="btnExportarPDF"><i class="ti ti-file-download"></i> Exportar / Imprimir PDF</button>
+        <button class="btn btn-outline" id="btnEnviarWhatsapp"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp</button>
+        <button class="btn btn-outline" id="btnEnviarEmail"><i class="ti ti-mail"></i> Enviar por mail</button>
+      </div>
+    </div>
+
+    <!-- COMPARATIVO ANUAL -->
+    <div class="pagina" id="pagina-anual">
+      <div class="stats" id="statsAnual"></div>
+      <div class="panel"><h3>Gasto por mes: este año vs. el anterior</h3><div class="panel-chart"><canvas id="chartAnual"></canvas></div></div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Compras atípicas</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Compras muy por encima de tu gasto promedio por pedido — vale la pena revisarlas.</p>
+        <table class="reporte" id="tablaAtipicos"></table>
+      </div>
+    </div>
+
+    <!-- RECLAMOS -->
+    <div class="pagina" id="pagina-reclamos">
+      <div class="stats" id="statsReclamos"></div>
+      <div class="panel">
+        <h3>Devoluciones en curso</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Pedidos que Mercado Libre marcó como devolución o no entregado.</p>
+        <table class="reporte" id="tablaDevoluciones"></table>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Reclamos abiertos</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Seguimiento manual — marcalos desde el detalle de cada pedido en la pestaña Pedidos.</p>
+        <div id="listaReclamos"></div>
+      </div>
     </div>
 
     <!-- CONFIG -->
@@ -394,7 +499,7 @@
   };
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -403,6 +508,10 @@
     document.getElementById('tituloPagina').textContent = nombresPagina[pag];
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
     if (pag === 'inicio') renderInicio();
+    if (pag === 'resumen') renderResumenMensual();
+    if (pag === 'anual') renderComparativoAnual();
+    if (pag === 'reclamos') renderReclamos();
+    if (pag !== 'escanear') detenerScanner();
   }
   document.querySelectorAll('.nav-item').forEach(item => { item.onclick = () => irAPagina(item.dataset.pagina); });
   document.querySelectorAll('.acceso-card').forEach(card => { card.onclick = () => irAPagina(card.dataset.ir); });
@@ -698,6 +807,14 @@
             ${p.factura_url ? `<a class="link-factura" href="${p.factura_url}" target="_blank">Ver la que subiste</a>` : ''}
           </div>
         </div>
+        <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Reclamo / devolución</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <div class="campo check"><input type="checkbox" class="c-reclamo" ${p.reclamo_abierto?'checked':''} /><label>Reclamo abierto</label></div>
+            <div class="campo"><label>Plazo límite</label><input type="date" class="c-plazo" value="${p.reclamo_fecha_limite??''}" /></div>
+            <button class="btn btn-outline c-plantilla" type="button" style="padding:6px 10px; font-size:11px;">Copiar plantilla de reclamo</button>
+          </div>
+        </div>
       </div>
     `;
     tr.appendChild(td);
@@ -729,6 +846,8 @@
         deducible: td.querySelector('.c-deducible').checked,
         cargado_en_cotizador: td.querySelector('.c-cotizador').checked,
         factura_url: facturaUrl,
+        reclamo_abierto: td.querySelector('.c-reclamo').checked,
+        reclamo_fecha_limite: td.querySelector('.c-plazo').value || null,
       }).eq('order_id', p.order_id);
 
       // Alerta de aumento de precio: comparamos contra la última vez que compramos
@@ -749,6 +868,18 @@
 
       btn.textContent = 'Guardado ✓';
       setTimeout(() => cargarPedidos(), 500);
+    };
+
+    td.querySelector('.c-plantilla').onclick = () => {
+      const texto = `Hola, me comunico por el pedido #${p.numero_operacion || p.order_id} (${p.titulo || 'producto'}), comprado el ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''} al vendedor ${p.vendedor_nickname || ''}.\n\n` +
+        `Estado actual: ${badgeLabel(p.status_envio)}.${p.tracking_number ? ` Tracking: ${p.tracking_number}.` : ''}\n\n` +
+        `Motivo del reclamo: [completar acá el detalle del problema]\n\n` +
+        `Solicito una solución (cambio, reembolso o el envío correspondiente) a la brevedad. Gracias.`;
+      navigator.clipboard.writeText(texto).then(() => {
+        alert('Plantilla copiada al portapapeles. Pegala donde la necesites (mensajería de ML, mail, etc.)');
+      }).catch(() => {
+        prompt('Copiá el texto manualmente:', texto);
+      });
     };
     return tr;
   }
@@ -848,6 +979,271 @@
     TODOS = data || [];
     renderizarPedidos();
     renderInicio();
+  }
+
+  /* ---------- SCANNER DE PAQUETES ---------- */
+  let scannerActivo = null;
+
+  function buscarPorTracking(codigo) {
+    const codigoLimpio = String(codigo).trim();
+    return TODOS.find(p => p.tracking_number && String(p.tracking_number).trim() === codigoLimpio);
+  }
+
+  function mostrarResultadoScan(pedido, codigoEscaneado) {
+    const cont = document.getElementById('resultadoScan');
+    if (!pedido) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--bad);">
+          <div style="font-weight:600; color:var(--bad); margin-bottom:6px;">No encontrado</div>
+          <div style="font-size:12.5px; color:var(--muted);">No hay ningún pedido con el tracking <span class="mono">${codigoEscaneado}</span>. Puede que sea un pedido que todavía no sincronizaste, o un código que no es de Mercado Libre.</div>
+        </div>`;
+      return;
+    }
+    if (pedido.verificado_por_mi) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--ok);">
+          <div style="display:flex; gap:10px; align-items:center;">
+            ${pedido.imagen_url ? `<img class="foto-prod" src="${pedido.imagen_url}" style="width:52px;height:52px;" />` : ''}
+            <div>
+              <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+              <div style="color:var(--ok); font-size:12px; margin-top:2px;">✓ Ya estaba marcado como recibido</div>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+    cont.innerHTML = `
+      <div class="panel" style="border-color:var(--indigo);">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+          ${pedido.imagen_url ? `<img class="foto-prod" src="${pedido.imagen_url}" style="width:52px;height:52px;" />` : ''}
+          <div>
+            <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">${pedido.vendedor_nickname||''} · ${fmtMoneda(pedido.total)}</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnConfirmarRecibido" style="width:100%;">Marcar como recibido</button>
+      </div>`;
+    document.getElementById('btnConfirmarRecibido').onclick = async () => {
+      await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', pedido.order_id);
+      pedido.verificado_por_mi = true;
+      mostrarResultadoScan(pedido, codigoEscaneado);
+      cargarPedidos();
+    };
+  }
+
+  function onScanExitoso(codigoEscaneado) {
+    const pedido = buscarPorTracking(codigoEscaneado);
+    mostrarResultadoScan(pedido, codigoEscaneado);
+    // pausa breve para no re-disparar el mismo código en loop mientras la cámara sigue apuntando
+    if (scannerActivo) scannerActivo.pause(true);
+    setTimeout(() => { if (scannerActivo) scannerActivo.resume(); }, 2000);
+  }
+
+  document.getElementById('btnIniciarScan').onclick = async () => {
+    if (scannerActivo) return;
+    try {
+      scannerActivo = new Html5Qrcode('lectorQR');
+      await scannerActivo.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 260, height: 140 }, formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_39,
+          ] },
+        (decodedText) => onScanExitoso(decodedText),
+        () => {} // errores de lectura frame a frame, se ignoran (es normal mientras enfoca)
+      );
+      document.getElementById('btnIniciarScan').style.display = 'none';
+      document.getElementById('btnDetenerScan').style.display = 'inline-block';
+    } catch (e) {
+      document.getElementById('resultadoScan').innerHTML = `<div class="alerta bad">No se pudo acceder a la cámara: ${e.message || e}. Revisá los permisos del navegador, o usá el campo manual de abajo.</div>`;
+    }
+  };
+
+  function detenerScanner() {
+    if (scannerActivo) {
+      scannerActivo.stop().then(() => scannerActivo.clear()).catch(() => {});
+      scannerActivo = null;
+      document.getElementById('btnIniciarScan').style.display = 'inline-block';
+      document.getElementById('btnDetenerScan').style.display = 'none';
+    }
+  }
+  document.getElementById('btnDetenerScan').onclick = detenerScanner;
+
+  document.getElementById('btnBuscarManual').onclick = () => {
+    const codigo = document.getElementById('trackingManual').value.trim();
+    if (!codigo) return;
+    onScanExitoso(codigo);
+  };
+  document.getElementById('trackingManual').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('btnBuscarManual').click(); };
+
+  /* ---------- RESUMEN MENSUAL (PDF / WhatsApp / mail) ---------- */
+  function textoResumenMensual() {
+    const ahora = new Date();
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const esteMes = TODOS.filter(p => p.fecha_creacion && new Date(p.fecha_creacion) >= inicioMes);
+    const gastoMes = esteMes.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const entregadosMes = esteMes.filter(p => p.status_envio === 'delivered').length;
+    const sinFacturaMes = esteMes.filter(p => !p.factura_adjunta).length;
+
+    const porCat = {};
+    esteMes.forEach(p => { const c = p.categoria_nombre || 'Sin categoría'; porCat[c] = (porCat[c]||0) + (montoReal(p)||0); });
+    const topCat = Object.keys(porCat).sort((a,b)=>porCat[b]-porCat[a])[0];
+
+    const nombreMes = ahora.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    return `Resumen de compras — ${nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1)}\n\n` +
+      `Total de compras: ${esteMes.length}\n` +
+      `Gasto total: ${fmtMoneda(gastoMes)}\n` +
+      `Entregados: ${entregadosMes}\n` +
+      `Sin factura: ${sinFacturaMes}\n` +
+      (topCat ? `Categoría con más gasto: ${topCat} (${fmtMoneda(porCat[topCat])})\n` : '') +
+      `\nGenerado desde Pedidos — Ibarra Insumos`;
+  }
+
+  function renderResumenMensual() {
+    const ahora = new Date();
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const esteMes = TODOS.filter(p => p.fecha_creacion && new Date(p.fecha_creacion) >= inicioMes);
+    const gastoMes = esteMes.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const diasTranscurridos = ahora.getDate();
+    const diasDelMes = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0).getDate();
+    const proyeccionMes = diasTranscurridos > 0 ? (gastoMes / diasTranscurridos) * diasDelMes : 0;
+
+    const inicioAno = new Date(ahora.getFullYear(), 0, 1);
+    const esteAno = TODOS.filter(p => p.fecha_creacion && new Date(p.fecha_creacion) >= inicioAno);
+    const gastoAno = esteAno.reduce((a,p)=>a+(montoReal(p)||0),0);
+    const mesActualNum = ahora.getMonth() + 1;
+    const proyeccionAnual = mesActualNum > 0 ? (gastoAno / mesActualNum) * 12 : 0;
+
+    const nombreMes = ahora.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    document.getElementById('resumenMensualContenido').innerHTML = `
+      <h3 style="margin-bottom:14px;">Resumen — ${nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1)}</h3>
+      <div class="stats" style="margin-bottom:0;">
+        <div class="stat"><div class="num">${esteMes.length}</div><div class="lbl">Compras este mes</div></div>
+        <div class="stat"><div class="num">${fmtMoneda(gastoMes)}</div><div class="lbl">Gasto este mes</div></div>
+        <div class="stat"><div class="num" style="color:var(--indigo)">${fmtMoneda(proyeccionMes)}</div><div class="lbl">Proyección fin de mes</div></div>
+        <div class="stat"><div class="num" style="color:var(--indigo)">${fmtMoneda(proyeccionAnual)}</div><div class="lbl">Proyección anual</div></div>
+      </div>
+    `;
+  }
+
+  document.getElementById('btnExportarPDF').onclick = () => window.print();
+  document.getElementById('btnEnviarWhatsapp').onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent(textoResumenMensual())}`, '_blank');
+  document.getElementById('btnEnviarEmail').onclick = () => { window.location.href = `mailto:?subject=${encodeURIComponent('Resumen de compras')}&body=${encodeURIComponent(textoResumenMensual())}`; };
+
+  /* ---------- COMPARATIVO ANUAL + ATÍPICOS ---------- */
+  let chartAnual;
+  function renderComparativoAnual() {
+    const ahora = new Date();
+    const anoActual = ahora.getFullYear();
+    const anoAnterior = anoActual - 1;
+    const mesesLabel = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    const totalesActual = Array(12).fill(0);
+    const totalesAnterior = Array(12).fill(0);
+    TODOS.forEach(p => {
+      if (!p.fecha_creacion) return;
+      const d = new Date(p.fecha_creacion);
+      const monto = montoReal(p) || 0;
+      if (d.getFullYear() === anoActual) totalesActual[d.getMonth()] += monto;
+      if (d.getFullYear() === anoAnterior) totalesAnterior[d.getMonth()] += monto;
+    });
+
+    const gastoAnoActual = totalesActual.reduce((a,b)=>a+b,0);
+    const gastoAnoAnterior = totalesAnterior.reduce((a,b)=>a+b,0);
+    const variacionAnual = gastoAnoAnterior > 0 ? ((gastoAnoActual - gastoAnoAnterior) / gastoAnoAnterior) * 100 : null;
+    const mesActualNum = ahora.getMonth() + 1;
+    const proyeccionAnual = mesActualNum > 0 ? (gastoAnoActual / mesActualNum) * 12 : 0;
+
+    document.getElementById('statsAnual').innerHTML = `
+      <div class="stat"><div class="num">${fmtMoneda(gastoAnoActual)}</div><div class="lbl">Gasto ${anoActual}</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(gastoAnoAnterior)}</div><div class="lbl">Gasto ${anoAnterior}</div></div>
+      <div class="stat"><div class="num" style="color:${variacionAnual===null?'inherit':(variacionAnual>=0?'var(--bad)':'var(--ok)')}">${variacionAnual===null?'-':(variacionAnual>=0?'↑':'↓')+' '+Math.abs(variacionAnual||0).toFixed(1)+'%'}</div><div class="lbl">Variación vs. año anterior</div></div>
+      <div class="stat"><div class="num" style="color:var(--indigo)">${fmtMoneda(proyeccionAnual)}</div><div class="lbl">Proyección ${anoActual} completo</div></div>
+    `;
+
+    if (chartAnual) chartAnual.destroy();
+    chartAnual = new Chart(document.getElementById('chartAnual'), {
+      type: 'bar',
+      data: { labels: mesesLabel, datasets: [
+        { label: String(anoAnterior), data: totalesAnterior, backgroundColor: '#c7d2fe', borderRadius: 4 },
+        { label: String(anoActual), data: totalesActual, backgroundColor: '#4f46e5', borderRadius: 4 },
+      ]},
+      options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+    });
+
+    // Detección de compras atípicas: promedio + desvío estándar
+    const montos = TODOS.map(p => montoReal(p)).filter(m => m > 0);
+    if (montos.length > 3) {
+      const promedio = montos.reduce((a,b)=>a+b,0) / montos.length;
+      const varianza = montos.reduce((a,m)=>a+Math.pow(m-promedio,2),0) / montos.length;
+      const desvio = Math.sqrt(varianza);
+      const umbral = promedio + desvio * 2;
+      const atipicos = TODOS.filter(p => montoReal(p) > umbral).sort((a,b) => montoReal(b) - montoReal(a)).slice(0, 15);
+      document.getElementById('tablaAtipicos').innerHTML = atipicos.length
+        ? `<tr><th>Fecha</th><th>Producto</th><th>Monto</th><th>Veces el promedio</th></tr>` +
+          atipicos.map(p => `<tr><td>${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</td><td>${p.titulo||'Pedido #'+p.order_id}</td><td>${fmtMoneda(montoReal(p))}</td><td>${(montoReal(p)/promedio).toFixed(1)}x</td></tr>`).join('')
+        : `<tr><td style="color:var(--muted);">No hay compras que se destaquen como atípicas todavía.</td></tr>`;
+    }
+  }
+
+  /* ---------- DEVOLUCIONES Y RECLAMOS ---------- */
+  function diasRestantes(fechaLimite) {
+    if (!fechaLimite) return null;
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const limite = new Date(fechaLimite); limite.setHours(0,0,0,0);
+    return Math.round((limite - hoy) / 86400000);
+  }
+
+  function renderReclamos() {
+    const devoluciones = TODOS.filter(p => p.tipo_envio === 'return' || p.status_envio === 'not_delivered');
+    const reclamosAbiertos = TODOS.filter(p => p.reclamo_abierto === true);
+    const ganados = TODOS.filter(p => p.reclamo_resultado === 'ganado').length;
+    const perdidos = TODOS.filter(p => p.reclamo_resultado === 'perdido').length;
+
+    document.getElementById('statsReclamos').innerHTML = `
+      <div class="stat"><div class="num" style="color:var(--warn)">${devoluciones.length}</div><div class="lbl">Devoluciones</div></div>
+      <div class="stat"><div class="num" style="color:var(--indigo)">${reclamosAbiertos.length}</div><div class="lbl">Reclamos abiertos</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${ganados}</div><div class="lbl">Ganados</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${perdidos}</div><div class="lbl">Perdidos</div></div>
+    `;
+
+    document.getElementById('tablaDevoluciones').innerHTML = devoluciones.length
+      ? `<tr><th>Fecha</th><th>Producto</th><th>Vendedor</th><th>Estado</th></tr>` +
+        devoluciones.map(p => `<tr><td>${p.fecha_creacion?new Date(p.fecha_creacion).toLocaleDateString('es-AR'):''}</td><td>${p.titulo||'Pedido #'+p.order_id}</td><td>${p.vendedor_nickname||''}</td><td><span class="badge other">${badgeLabel(p.status_envio)}</span></td></tr>`).join('')
+      : `<tr><td style="color:var(--muted);">No tenés devoluciones registradas.</td></tr>`;
+
+    const listaEl = document.getElementById('listaReclamos');
+    if (!reclamosAbiertos.length) {
+      listaEl.innerHTML = `<div class="empty">No marcaste ningún reclamo como abierto todavía. Hacelo desde el detalle de un pedido en la pestaña Pedidos.</div>`;
+      return;
+    }
+    const ordenados = [...reclamosAbiertos].sort((a,b) => (diasRestantes(a.reclamo_fecha_limite) ?? 999) - (diasRestantes(b.reclamo_fecha_limite) ?? 999));
+    listaEl.innerHTML = '';
+    for (const p of ordenados) {
+      const dias = diasRestantes(p.reclamo_fecha_limite);
+      const plazoHtml = dias === null ? '' : `<span class="reclamo-plazo ${dias <= 3 ? 'urgente' : 'ok'}">${dias >= 0 ? `Quedan ${dias} días` : 'Plazo vencido'}</span>`;
+      const div = document.createElement('div');
+      div.className = 'reclamo-item';
+      div.innerHTML = `
+        <div>
+          <div style="font-weight:600; font-size:13px;">${p.titulo || 'Pedido #' + p.order_id}</div>
+          <div style="font-size:11.5px; color:var(--muted); margin-top:2px;">${p.vendedor_nickname||''} · ${fmtMoneda(p.total)}</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          ${plazoHtml}
+          <select class="c-resultado" style="font-size:12px; padding:5px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+            <option value="pendiente" ${(!p.reclamo_resultado||p.reclamo_resultado==='pendiente')?'selected':''}>Pendiente</option>
+            <option value="ganado" ${p.reclamo_resultado==='ganado'?'selected':''}>Ganado</option>
+            <option value="perdido" ${p.reclamo_resultado==='perdido'?'selected':''}>Perdido</option>
+          </select>
+        </div>
+      `;
+      div.querySelector('.c-resultado').onchange = async (e) => {
+        await db.from('pedidos').update({ reclamo_resultado: e.target.value }).eq('order_id', p.order_id);
+        cargarPedidos();
+      };
+      listaEl.appendChild(div);
+    }
   }
 
   function init() {
