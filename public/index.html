@@ -219,6 +219,23 @@
   .reclamo-plazo.urgente{background:rgba(220,38,38,.12); color:var(--bad);}
   .reclamo-plazo.ok{background:rgba(217,119,6,.12); color:var(--warn);}
 
+  .solo-mobile{display:none;}
+  .historial-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;}
+  .historial-card .foto-prod{width:46px; height:46px; flex-shrink:0;}
+  .historial-card .info{flex:1; min-width:0;}
+  .historial-card .titulo{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .historial-card .meta{font-size:11px; color:var(--muted); margin:3px 0 6px;}
+  .historial-card .fila-inferior{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;}
+  .historial-card .precio{font-family:'Spline Sans Mono',monospace; font-weight:600; font-size:13px; color:var(--teal);}
+  .historial-card .facturas-mini{display:flex; gap:8px; font-size:10px; color:var(--muted); margin-top:6px;}
+  .historial-card .facturas-mini span{display:flex; align-items:center; gap:3px;}
+  .historial-card .llego-check{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text);}
+
+  @media(max-width:800px){
+    .solo-mobile{display:block;}
+    .solo-desktop{display:none;}
+  }
+
   @media print {
     body { background:#fff !important; }
     aside, .topbar-actions, #estado, .sidebar-footer, .bienvenida-fecha { display:none !important; }
@@ -277,8 +294,10 @@
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
       <div class="nav-item" data-pagina="sinfactura"><span class="ic"><i class="ti ti-file-alert"></i></span> Facturas pendientes</div>
+      <div class="nav-item" data-pagina="imprimirfacturas"><span class="ic"><i class="ti ti-printer"></i></span> Imprimir facturas</div>
 
       <div class="nav-section">Análisis</div>
+      <div class="nav-item" data-pagina="checklist"><span class="ic"><i class="ti ti-checklist"></i></span> Checklist del negocio</div>
       <div class="nav-item" data-pagina="resumen"><span class="ic"><i class="ti ti-file-text"></i></span> Resumen mensual</div>
       <div class="nav-item" data-pagina="anual"><span class="ic"><i class="ti ti-calendar-stats"></i></span> Comparativo anual</div>
       <div class="nav-item" data-pagina="reclamos"><span class="ic"><i class="ti ti-alert-triangle"></i></span> Devoluciones y reclamos</div>
@@ -441,7 +460,7 @@
         <button class="btn btn-outline" id="btnExportarPdfHist"><i class="ti ti-file-type-pdf"></i> PDF</button>
         <button class="btn btn-outline" id="btnImprimirHist"><i class="ti ti-printer"></i> Imprimir</button>
       </div>
-      <div class="panel" style="padding:0; overflow-x:auto;">
+      <div class="panel solo-desktop" style="padding:0; overflow-x:auto;">
         <table class="productos" id="tablaHistorial">
           <thead><tr>
             <th></th><th>Producto</th><th>Fecha</th><th>Vendedor</th><th class="th-num">Total</th><th>Estado</th><th>Factura</th><th>¿Llegó?</th>
@@ -449,6 +468,7 @@
           <tbody id="tbodyHistorial"></tbody>
         </table>
       </div>
+      <div id="listaHistorialMobile" class="solo-mobile"></div>
     </div>
 
     <!-- ESCANEAR -->
@@ -542,6 +562,21 @@
       <div id="listaSinFactura"></div>
     </div>
 
+    <!-- IMPRIMIR FACTURAS -->
+    <div class="pagina" id="pagina-imprimirfacturas">
+      <div class="stats" id="statsImprimir"></div>
+      <div style="margin-bottom:14px;">
+        <button class="btn btn-primary" id="btnImprimirTodas"><i class="ti ti-printer"></i> Imprimir todas las pendientes</button>
+        <p style="color:var(--muted); font-size:12px; margin-top:6px;">Se abre un PDF por cada factura en una pestaña nueva. Si el navegador bloquea las ventanas emergentes, permitilas para este sitio.</p>
+      </div>
+      <div id="listaImprimir"></div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="pagina" id="pagina-checklist">
+      <div id="listaChecklist"></div>
+    </div>
+
     <!-- RESUMEN MENSUAL -->
     <div class="pagina" id="pagina-resumen">
       <div class="panel" id="resumenMensualContenido"></div>
@@ -592,6 +627,32 @@
         <h3>Exportar</h3>
         <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Descargá todos los pedidos con su info contable en un CSV para tu contador.</p>
         <button class="btn btn-primary" id="btnExportar">Exportar CSV</button>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Mensaje para reclamar factura</h3>
+        <p style="color:var(--muted); font-size:12.5px; margin-bottom:10px;">
+          Este es el texto que se copia cuando apretás "Copiar mensaje para reclamar" en Facturas pendientes. Podés usar estas variables, que se completan solas con los datos de cada pedido:
+          <br/><code class="mono">{titulo}</code> · <code class="mono">{numero}</code> · <code class="mono">{fecha}</code> · <code class="mono">{vendedor}</code>
+        </p>
+        <textarea id="cfgPlantillaFactura" rows="6" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; font-size:13px; resize:vertical;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="btn btn-outline" id="btnGuardarPlantilla">Guardar mensaje</button>
+          <button class="btn btn-outline" id="btnRestaurarPlantilla">Restaurar el original</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Cargar compra histórica manual</h3>
+        <p style="color:var(--muted); font-size:12.5px; margin-bottom:10px;">
+          Mercado Libre solo guarda compras de los últimos 12 meses en su sistema — las más viejas ya no se pueden traer automáticamente, ni nosotros ni nadie. Acá podés cargarlas a mano para que sigan apareciendo en tus reportes.
+        </p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+          <div class="campo"><label>Producto</label><input type="text" id="manTitulo" style="width:220px;" /></div>
+          <div class="campo"><label>Vendedor</label><input type="text" id="manVendedor" style="width:160px;" /></div>
+          <div class="campo"><label>Fecha</label><input type="date" id="manFecha" /></div>
+          <div class="campo"><label>Total</label><input type="number" step="0.01" id="manTotal" /></div>
+          <div class="campo"><label>Categoría</label><input type="text" id="manCategoria" placeholder="opcional" /></div>
+          <button class="btn btn-primary" id="btnAgregarManual">Agregar</button>
+        </div>
       </div>
     </div>
   </main>
@@ -651,7 +712,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -662,6 +723,8 @@
     if (pag === 'inicio') renderInicio();
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
+    if (pag === 'imprimirfacturas') renderImprimirFacturas();
+    if (pag === 'checklist') renderChecklist();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
     if (pag === 'reclamos') renderReclamos();
@@ -1168,12 +1231,15 @@
     const a = document.createElement('a'); a.href = url; a.download = `pedidos_ml_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   };
 
+  const PLANTILLA_FACTURA_DEFAULT = 'Hola! Te escribo por la compra "{titulo}" (pedido #{numero}) del {fecha}.\n\n¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!';
+
   async function cargarConfig() {
     const { data } = await db.from('config').select('*').eq('id', 1).single();
     if (data) {
       CONFIG = data;
       document.getElementById('cfgDiasFactura').value = data.dias_alerta_factura;
       document.getElementById('cfgMontoAlerta').value = data.monto_alerta;
+      document.getElementById('cfgPlantillaFactura').value = data.plantilla_factura || PLANTILLA_FACTURA_DEFAULT;
     }
   }
   document.getElementById('btnGuardarConfig').onclick = async () => {
@@ -1183,6 +1249,16 @@
     CONFIG.dias_alerta_factura = dias; CONFIG.monto_alerta = monto;
     renderizarPedidos(); renderInicio();
     alert('Configuración guardada');
+  };
+
+  document.getElementById('btnGuardarPlantilla').onclick = async () => {
+    const texto = document.getElementById('cfgPlantillaFactura').value;
+    await db.from('config').update({ plantilla_factura: texto }).eq('id', 1);
+    CONFIG.plantilla_factura = texto;
+    alert('Mensaje guardado');
+  };
+  document.getElementById('btnRestaurarPlantilla').onclick = () => {
+    document.getElementById('cfgPlantillaFactura').value = PLANTILLA_FACTURA_DEFAULT;
   };
 
   async function cargarPedidos() {
@@ -1204,6 +1280,8 @@
     renderInicio();
     if (document.getElementById('pagina-historial')?.classList.contains('activa')) renderHistorial();
     if (document.getElementById('pagina-sinfactura')?.classList.contains('activa')) renderSinFactura();
+    if (document.getElementById('pagina-imprimirfacturas')?.classList.contains('activa')) renderImprimirFacturas();
+    if (document.getElementById('pagina-checklist')?.classList.contains('activa')) renderChecklist();
   }
 
   /* ---------- SCANNER DE PAQUETES ---------- */
@@ -1547,6 +1625,36 @@
       };
       tbody.appendChild(tr);
     }
+
+    // Versión mobile: tarjetas apiladas en vez de tabla ancha
+    const contMobile = document.getElementById('listaHistorialMobile');
+    contMobile.innerHTML = pedidos.map(p => `
+      <div class="historial-card">
+        ${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" loading="lazy" onerror="this.style.display='none'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}
+        <div class="info">
+          <div class="titulo">${p.titulo || 'Pedido #'+p.order_id}</div>
+          <div class="meta">${p.vendedor_nickname || '-'} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '-'}</div>
+          <div class="fila-inferior">
+            <span class="precio">${fmtExacto(montoReal(p))}</span>
+            <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>${p.logistic_type === 'self_service' ? ' <span class="badge flex">⚡</span>' : ''}
+          </div>
+          <div class="facturas-mini">
+            <span><span class="factura-dot ${p.factura_ml_id?'si':'no'}"></span> ML</span>
+            <span><span class="factura-dot ${p.factura_adjunta?'si':'no'}"></span> Manual</span>
+            <label class="llego-check" style="margin-left:auto;"><input type="checkbox" class="c-llego-mobile" ${p.verificado_por_mi?'checked':''} data-order="${p.order_id}" /> Llegó</label>
+          </div>
+        </div>
+      </div>`).join('') || '<div class="empty">No hay pedidos que coincidan.</div>';
+
+    contMobile.querySelectorAll('.c-llego-mobile').forEach(chk => {
+      chk.onchange = async (e) => {
+        const oid = e.target.dataset.order;
+        await db.from('pedidos').update({ verificado_por_mi: e.target.checked }).eq('order_id', oid);
+        const p2 = TODOS.find(x => String(x.order_id) === oid);
+        if (p2) p2.verificado_por_mi = e.target.checked;
+        renderHistorial();
+      };
+    });
   }
 
   /* ---------- FACTURAS PENDIENTES ---------- */
@@ -1555,8 +1663,12 @@
   document.getElementById('ordenSinFactura').onchange = renderSinFactura;
 
   function textoReclamoFactura(p) {
-    return `Hola! Te escribo por la compra "${p.titulo || ''}" (pedido #${p.numero_operacion || p.order_id}) del ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}.\n\n` +
-      `¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!`;
+    const plantilla = CONFIG.plantilla_factura || PLANTILLA_FACTURA_DEFAULT;
+    return plantilla
+      .replaceAll('{titulo}', p.titulo || '')
+      .replaceAll('{numero}', p.numero_operacion || p.order_id)
+      .replaceAll('{fecha}', p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '')
+      .replaceAll('{vendedor}', p.vendedor_nickname || '');
   }
 
   function renderSinFactura() {
@@ -1713,6 +1825,136 @@
   };
 
   document.getElementById('btnImprimirHist').onclick = () => window.print();
+
+  /* ---------- IMPRIMIR FACTURAS ---------- */
+  function pendientesDeImprimir() {
+    return TODOS.filter(p => p.factura_ml_id && !p.factura_impresa);
+  }
+
+  function renderImprimirFacturas() {
+    const pendientes = pendientesDeImprimir();
+    document.getElementById('statsImprimir').innerHTML = `
+      <div class="stat"><div class="num" style="color:var(--indigo)">${pendientes.length}</div><div class="lbl">Facturas por imprimir</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(pendientes.reduce((a,p)=>a+(montoReal(p)||0),0))}</div><div class="lbl">Monto asociado</div></div>
+    `;
+    const cont = document.getElementById('listaImprimir');
+    if (!pendientes.length) { cont.innerHTML = '<div class="empty">No hay facturas nuevas esperando para imprimir. A medida que los vendedores suban las suyas, van a aparecer acá.</div>'; return; }
+
+    cont.innerHTML = '';
+    for (const p of pendientes) {
+      const div = document.createElement('div');
+      div.className = 'pendiente-card';
+      div.innerHTML = `
+        ${p.imagen_url ? `<img class="pendiente-foto" src="${p.imagen_url}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+        <div class="pendiente-info">
+          <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+          <div class="pendiente-meta">${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+        </div>
+        <div class="pendiente-acciones">
+          <button class="btn btn-primary c-imprimir-una">Imprimir esta factura</button>
+        </div>
+      `;
+      div.querySelector('.c-imprimir-una').onclick = () => imprimirYMarcar(p);
+      cont.appendChild(div);
+    }
+  }
+
+  async function imprimirYMarcar(p) {
+    window.open(`/api/factura-ml?pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}`, '_blank');
+    await db.from('pedidos').update({ factura_impresa: true }).eq('order_id', p.order_id);
+    p.factura_impresa = true;
+    renderImprimirFacturas();
+  }
+
+  document.getElementById('btnImprimirTodas').onclick = async () => {
+    const pendientes = pendientesDeImprimir();
+    if (!pendientes.length) return;
+    if (!confirm(`Se van a abrir ${pendientes.length} pestañas (una por factura) y se van a marcar como impresas. ¿Continuar?`)) return;
+    for (const p of pendientes) {
+      await imprimirYMarcar(p);
+      await new Promise(r => setTimeout(r, 300)); // pequeña pausa para no saturar el navegador
+    }
+  };
+
+  /* ---------- CHECKLIST DEL NEGOCIO ---------- */
+  function renderChecklist() {
+    const ahora = Date.now();
+    const items = [];
+
+    const sinFactura = TODOS.filter(p => !p.factura_ml_id && p.fecha_creacion && (ahora - new Date(p.fecha_creacion).getTime())/86400000 > CONFIG.dias_alerta_factura);
+    if (sinFactura.length) items.push({ icono:'ti-file-alert', color:'var(--warn)', texto:`${sinFactura.length} pedido(s) llevan más de ${CONFIG.dias_alerta_factura} días sin factura del vendedor.`, pag:'sinfactura' });
+
+    const porImprimir = pendientesDeImprimir();
+    if (porImprimir.length) items.push({ icono:'ti-printer', color:'var(--indigo)', texto:`${porImprimir.length} factura(s) nueva(s) esperando para imprimir.`, pag:'imprimirfacturas' });
+
+    const sinConciliar = TODOS.filter(p => p.status_envio === 'delivered' && p.cargado_en_cotizador !== true);
+    if (sinConciliar.length) items.push({ icono:'ti-clipboard-check', color:'var(--warn)', texto:`${sinConciliar.length} pedido(s) entregados sin cargar en el Cotizador.`, pag:'conciliacion' });
+
+    const montoAlto = TODOS.filter(p => montoReal(p) > CONFIG.monto_alerta);
+    if (montoAlto.length) items.push({ icono:'ti-alert-triangle', color:'var(--bad)', texto:`${montoAlto.length} pedido(s) superan tu monto de alerta configurado.`, pag:'pedidos' });
+
+    const reclamosPorVencer = TODOS.filter(p => p.reclamo_abierto && p.reclamo_fecha_limite && diasRestantes(p.reclamo_fecha_limite) !== null && diasRestantes(p.reclamo_fecha_limite) <= 3);
+    if (reclamosPorVencer.length) items.push({ icono:'ti-clock-alert', color:'var(--bad)', texto:`${reclamosPorVencer.length} reclamo(s) con el plazo por vencer (3 días o menos).`, pag:'reclamos' });
+
+    const devoluciones = TODOS.filter(p => p.tipo_envio === 'return' || p.status_envio === 'not_delivered');
+    if (devoluciones.length) items.push({ icono:'ti-corner-down-left', color:'var(--warn)', texto:`${devoluciones.length} devolución(es) en curso.`, pag:'reclamos' });
+
+    const sinRubro = TODOS.filter(p => !p.rubro).length;
+    if (sinRubro > 5) items.push({ icono:'ti-tags', color:'var(--muted)', texto:`${sinRubro} pedido(s) todavía no tienen rubro cargado.`, pag:'pedidos' });
+
+    const cont = document.getElementById('listaChecklist');
+    if (!items.length) {
+      cont.innerHTML = `<div class="panel"><h3>✅ Todo al día</h3><p style="color:var(--muted); font-size:13px;">No hay pendientes detectados en este momento. ¡Buen trabajo con la organización!</p></div>`;
+      return;
+    }
+    cont.innerHTML = `<div class="panel"><h3>Pendientes detectados (${items.length})</h3>` +
+      items.map(it => `
+        <div class="reclamo-item">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <i class="ti ${it.icono}" style="font-size:18px; color:${it.color};"></i>
+            <span style="font-size:13px;">${it.texto}</span>
+          </div>
+          <button class="btn btn-outline c-ir-checklist" data-ir="${it.pag}" style="font-size:12px; padding:6px 12px;">Revisar</button>
+        </div>
+      `).join('') + `</div>`;
+    cont.querySelectorAll('.c-ir-checklist').forEach(btn => { btn.onclick = () => irAPagina(btn.dataset.ir); });
+  }
+
+  /* ---------- CARGA MANUAL DE COMPRAS HISTÓRICAS ---------- */
+  document.getElementById('btnAgregarManual').onclick = async () => {
+    const titulo = document.getElementById('manTitulo').value.trim();
+    const vendedor = document.getElementById('manVendedor').value.trim();
+    const fecha = document.getElementById('manFecha').value;
+    const total = Number(document.getElementById('manTotal').value);
+    const categoria = document.getElementById('manCategoria').value.trim();
+
+    if (!titulo || !fecha || !total) { alert('Completá al menos producto, fecha y total.'); return; }
+
+    const idSintetico = Date.now(); // ID único, ya que no viene de Mercado Libre
+    const { error } = await db.from('pedidos').insert({
+      order_id: idSintetico,
+      titulo,
+      vendedor_nickname: vendedor || null,
+      fecha_creacion: fecha,
+      total,
+      moneda: 'ARS',
+      categoria_nombre: categoria || null,
+      status_orden: 'paid',
+      status_envio: 'delivered',
+      entregado_confirmado: true,
+      manual_historico: true,
+      verificado_por_mi: true,
+    });
+    if (error) { alert('Error al guardar: ' + error.message); return; }
+
+    document.getElementById('manTitulo').value = '';
+    document.getElementById('manVendedor').value = '';
+    document.getElementById('manFecha').value = '';
+    document.getElementById('manTotal').value = '';
+    document.getElementById('manCategoria').value = '';
+    alert('Compra histórica agregada.');
+    cargarPedidos();
+  };
 
   function init() {
     cargarConfig();
