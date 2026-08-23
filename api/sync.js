@@ -138,7 +138,7 @@ export default async function handler(req, res) {
       let shipping = null;
       if (order.shipping?.id) {
         try {
-          const shipResp = await fetch(`https://api.mercadolibre.com/orders/${order.id}/shipments`, { headers: { Authorization: `Bearer ${accessToken}`, 'X-New-Domain': 'true' } });
+          const shipResp = await fetch(`https://api.mercadolibre.com/orders/${order.id}/shipments?views=origin,destination`, { headers: { Authorization: `Bearer ${accessToken}`, 'X-New-Domain': 'true', 'X-Api-Version': '2' } });
           if (shipResp.ok) shipping = await shipResp.json();
         } catch (e) { console.error('shipment error', order.id, e); }
       }
@@ -169,6 +169,12 @@ export default async function handler(req, res) {
       const logisticType = shipInfo?.logistic_type || null;
       const destinoTipo = shipInfo?.destination?.type || null;
       const destinoDireccion = shipInfo?.destination?.shipping_address?.address_line || null;
+      const destinoCalle = shipInfo?.receiver_address?.address_line || null;
+      const destinoCiudad = shipInfo?.receiver_address?.city?.name || null;
+      const destinoProvincia = shipInfo?.receiver_address?.state?.name || null;
+      const destinoLat = shipInfo?.receiver_address?.latitude ?? null;
+      const destinoLon = shipInfo?.receiver_address?.longitude ?? null;
+      const origenProvincia = shipInfo?.sender_address?.state?.name || null;
       const costoEnvio = shipInfo?.shipping_option?.cost ?? null;
       const fechaEstimadaNueva = shipInfo?.shipping_option?.estimated_delivery_time?.date || null;
       const fechaEstimadaCambio = !!(existente?.fecha_estimada && fechaEstimadaNueva && existente.fecha_estimada !== fechaEstimadaNueva);
@@ -197,6 +203,12 @@ export default async function handler(req, res) {
         logistic_type: logisticType,
         destino_tipo: destinoTipo,
         destino_direccion: destinoDireccion,
+        destino_calle: destinoCalle,
+        destino_ciudad: destinoCiudad,
+        destino_provincia: destinoProvincia,
+        destino_lat: destinoLat,
+        destino_lon: destinoLon,
+        origen_provincia: origenProvincia,
         costo_envio: costoEnvio,
         fecha_estimada: fechaEstimadaNueva,
         fecha_estimada_cambio: fechaEstimadaCambio,

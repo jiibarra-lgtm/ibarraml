@@ -450,6 +450,9 @@
           <option value="si">Llegaron</option>
           <option value="no">No llegaron todavía</option>
         </select>
+        <select id="filtroDireccionHistorial">
+          <option value="">Todas las direcciones</option>
+        </select>
         <select id="ordenHistorial">
           <option value="fecha_desc">Fecha: más reciente primero</option>
           <option value="fecha_asc">Fecha: más antiguo primero</option>
@@ -595,6 +598,18 @@
         <h3>Compras atípicas</h3>
         <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Compras muy por encima de tu gasto promedio por pedido — vale la pena revisarlas.</p>
         <table class="reporte" id="tablaAtipicos"></table>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <h3>Tiempo de entrega por dirección</h3>
+          <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Promedio de días entre el pago y la entrega, agrupado por ciudad de destino.</p>
+          <table class="reporte" id="tablaEntregaDireccion"></table>
+        </div>
+        <div class="panel">
+          <h3>Tiempo de entrega por origen del vendedor</h3>
+          <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Promedio de días según la provincia donde está el vendedor.</p>
+          <table class="reporte" id="tablaEntregaOrigen"></table>
+        </div>
       </div>
     </div>
 
@@ -844,6 +859,7 @@
     // Link directo a la compra puntual en tu cuenta de ML.
     return `https://myaccount.mercadolibre.com.ar/my_purchases/${p.order_id}/status`;
   }
+  function fotoDe(p) { return p.imagen_url || p.imagen_manual_url || null; }
   function montoReal(p) {
     const t = Number(p.total) || 0;
     if (p.moneda_original && p.tipo_cambio) return t * Number(p.tipo_cambio);
@@ -1008,7 +1024,7 @@
     const cantidad = p.cantidad_unidades || 1;
     const unitario = p.precio_unitario ?? (p.total && cantidad ? p.total / cantidad : null);
     tr.innerHTML = `
-      <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" alt="${(p.titulo||'').replace(/"/g,'')}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
+      <td>${fotoDe(p) ? `<img class="foto-prod" src="${fotoDe(p)}" alt="${(p.titulo||'').replace(/"/g,'')}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
       <td>
         <div class="celda-producto">
           <div>
@@ -1071,6 +1087,14 @@
           </div>
         </div>
         <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Foto del producto</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            ${(p.imagen_url || p.imagen_manual_url) ? `<img src="${p.imagen_url || p.imagen_manual_url}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:1px solid var(--border);" />` : `<span style="font-size:12px; color:var(--muted);">Mercado Libre no tiene foto disponible para este producto.</span>`}
+            <input type="file" class="c-foto-manual" accept="image/*" style="font-size:11px;" />
+            ${p.imagen_manual_url ? `<span style="font-size:11px; color:var(--ok);">✓ Tenés una foto propia cargada</span>` : ''}
+          </div>
+        </div>
+        <div>
           <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Reclamo / devolución</div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <div class="campo check"><input type="checkbox" class="c-reclamo" ${p.reclamo_abierto?'checked':''} /><label>Reclamo abierto</label></div>
@@ -1084,6 +1108,8 @@
             ${p.logistic_type === 'self_service' ? '<span class="badge flex">⚡ Envío Flex</span><br/>' : ''}
             ${p.logistic_type ? `Tipo logístico: <b>${p.logistic_type}</b><br/>` : ''}
             Costo de envío: <b>${p.costo_envio != null ? fmtExacto(p.costo_envio) : 'Gratis / no informado'}</b><br/>
+            ${p.destino_calle ? `Entregado en: <b>${p.destino_calle}${p.destino_ciudad ? ', ' + p.destino_ciudad : ''}${p.destino_provincia ? ', ' + p.destino_provincia : ''}</b><br/>` : ''}
+            ${p.origen_provincia ? `Vendedor ubicado en: <b>${p.origen_provincia}</b><br/>` : ''}
             ${p.destino_direccion ? `Retiro en: <b>${p.destino_direccion}</b><br/>` : ''}
             ${p.fecha_estimada_cambio ? `<span style="color:var(--bad);">⚠ La fecha estimada cambió respecto a la última sync.</span><br/>` : ''}
             <a href="https://myaccount.mercadolibre.com.ar/my_purchases/${p.order_id}/status" target="_blank" class="link-factura">Intentar ir directo a la compra →</a> ·
@@ -1097,12 +1123,20 @@
     td.querySelector('.c-guardar').onclick = async (e) => {
       const btn = e.target; btn.textContent = 'Guardando...';
       const archivo = td.querySelector('.c-archivo').files[0];
+      const fotoManual = td.querySelector('.c-foto-manual').files[0];
       let facturaUrl = p.factura_url || null;
+      let imagenManualUrl = p.imagen_manual_url || null;
       if (archivo) {
         const nombre = `${p.order_id}_${Date.now()}_${archivo.name}`;
         const { error: upErr } = await db.storage.from('facturas').upload(nombre, archivo);
         if (!upErr) facturaUrl = db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl;
         else alert('Error subiendo factura: ' + upErr.message);
+      }
+      if (fotoManual) {
+        const nombreFoto = `foto_${p.order_id}_${Date.now()}_${fotoManual.name}`;
+        const { error: upErrFoto } = await db.storage.from('facturas').upload(nombreFoto, fotoManual);
+        if (!upErrFoto) imagenManualUrl = db.storage.from('facturas').getPublicUrl(nombreFoto).data.publicUrl;
+        else alert('Error subiendo la foto: ' + upErrFoto.message);
       }
       const genericoNuevo = td.querySelector('.c-generico').value || null;
       const precioActual = p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null);
@@ -1121,6 +1155,7 @@
         deducible: td.querySelector('.c-deducible').checked,
         cargado_en_cotizador: td.querySelector('.c-cotizador').checked,
         factura_url: facturaUrl,
+        imagen_manual_url: imagenManualUrl,
         reclamo_abierto: td.querySelector('.c-reclamo').checked,
         reclamo_fecha_limite: td.querySelector('.c-plazo').value || null,
       }).eq('order_id', p.order_id);
@@ -1495,6 +1530,42 @@
           atipicos.map(p => `<tr><td>${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</td><td>${p.titulo||'Pedido #'+p.order_id}</td><td>${fmtMoneda(montoReal(p))}</td><td>${(montoReal(p)/promedio).toFixed(1)}x</td></tr>`).join('')
         : `<tr><td style="color:var(--muted);">No hay compras que se destaquen como atípicas todavía.</td></tr>`;
     }
+
+    // Tiempo de entrega (días entre pago y entrega) por dirección de destino y por provincia de origen del vendedor
+    function diasEntrega(p) {
+      if (!p.fecha_pago || !p.fecha_entrega) return null;
+      const dias = (new Date(p.fecha_entrega) - new Date(p.fecha_pago)) / 86400000;
+      return dias >= 0 ? dias : null;
+    }
+
+    const porDireccion = {};
+    TODOS.forEach(p => {
+      const dias = diasEntrega(p);
+      if (dias === null || !p.destino_ciudad) return;
+      const key = `${p.destino_ciudad}, ${p.destino_provincia||''}`;
+      (porDireccion[key] = porDireccion[key] || []).push(dias);
+    });
+    const filasDireccion = Object.keys(porDireccion).map(k => ({
+      nombre: k, promedio: porDireccion[k].reduce((a,b)=>a+b,0)/porDireccion[k].length, cant: porDireccion[k].length,
+    })).sort((a,b) => b.promedio - a.promedio);
+    document.getElementById('tablaEntregaDireccion').innerHTML = filasDireccion.length
+      ? `<tr><th>Ciudad</th><th>Promedio</th><th>Compras</th></tr>` +
+        filasDireccion.map(f => `<tr><td>${f.nombre}</td><td>${f.promedio.toFixed(1)} días</td><td>${f.cant}</td></tr>`).join('')
+      : `<tr><td style="color:var(--muted);">Todavía no hay suficientes datos de fechas de pago/entrega.</td></tr>`;
+
+    const porOrigen = {};
+    TODOS.forEach(p => {
+      const dias = diasEntrega(p);
+      if (dias === null || !p.origen_provincia) return;
+      (porOrigen[p.origen_provincia] = porOrigen[p.origen_provincia] || []).push(dias);
+    });
+    const filasOrigen = Object.keys(porOrigen).map(k => ({
+      nombre: k, promedio: porOrigen[k].reduce((a,b)=>a+b,0)/porOrigen[k].length, cant: porOrigen[k].length,
+    })).sort((a,b) => b.promedio - a.promedio);
+    document.getElementById('tablaEntregaOrigen').innerHTML = filasOrigen.length
+      ? `<tr><th>Provincia del vendedor</th><th>Promedio</th><th>Compras</th></tr>` +
+        filasOrigen.map(f => `<tr><td>${f.nombre}</td><td>${f.promedio.toFixed(1)} días</td><td>${f.cant}</td></tr>`).join('')
+      : `<tr><td style="color:var(--muted);">Todavía no hay suficientes datos de origen del vendedor.</td></tr>`;
   }
 
   /* ---------- DEVOLUCIONES Y RECLAMOS ---------- */
@@ -1560,6 +1631,7 @@
   /* ---------- HISTORIAL CRONOLÓGICO ---------- */
   document.getElementById('buscarHistorial').oninput = renderHistorial;
   document.getElementById('filtroLlegadaHistorial').onchange = renderHistorial;
+  document.getElementById('filtroDireccionHistorial').onchange = renderHistorial;
   document.getElementById('ordenHistorial').onchange = renderHistorial;
 
   let ULTIMO_HISTORIAL_FILTRADO = [];
@@ -1567,7 +1639,17 @@
   function renderHistorial() {
     const busqueda = document.getElementById('buscarHistorial').value.toLowerCase();
     const filtroLlegada = document.getElementById('filtroLlegadaHistorial').value;
+    const filtroDireccion = document.getElementById('filtroDireccionHistorial').value;
     const orden = document.getElementById('ordenHistorial').value;
+
+    // Llenar el selector de direcciones con las que realmente aparecen en tus pedidos
+    const selDireccion = document.getElementById('filtroDireccionHistorial');
+    const direccionesUnicas = [...new Set(TODOS.map(p => p.destino_ciudad ? `${p.destino_ciudad}, ${p.destino_provincia||''}` : null).filter(Boolean))].sort();
+    if (selDireccion.dataset.opcionesArmadas !== String(direccionesUnicas.length)) {
+      selDireccion.innerHTML = '<option value="">Todas las direcciones</option>' + direccionesUnicas.map(d => `<option value="${d}">${d}</option>`).join('');
+      selDireccion.value = filtroDireccion;
+      selDireccion.dataset.opcionesArmadas = String(direccionesUnicas.length);
+    }
 
     let pedidos = [...TODOS];
     const ordenadores = {
@@ -1581,7 +1663,8 @@
     pedidos = pedidos.filter(p => {
       const matchBusqueda = !busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda);
       const matchLlegada = !filtroLlegada || (filtroLlegada === 'si' ? p.verificado_por_mi : !p.verificado_por_mi);
-      return matchBusqueda && matchLlegada;
+      const matchDireccion = !filtroDireccion || `${p.destino_ciudad}, ${p.destino_provincia||''}` === filtroDireccion;
+      return matchBusqueda && matchLlegada && matchDireccion;
     });
 
     const llegaron = TODOS.filter(p => p.verificado_por_mi).length;
@@ -1600,7 +1683,7 @@
     for (const p of pedidos) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
+        <td>${fotoDe(p) ? `<img class="foto-prod" src="${fotoDe(p)}" loading="lazy" onerror="this.outerHTML='<div class=&quot;foto-prod placeholder&quot;>Sin foto</div>'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}</td>
         <td><div class="nombre" style="max-width:260px;" title="${(p.titulo||'').replace(/"/g,'')}">${p.titulo || 'Pedido #'+p.order_id}</div></td>
         <td style="font-size:12px; color:var(--muted);">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '-'}</td>
         <td style="font-size:12px;">${p.vendedor_nickname || '-'}</td>
@@ -1630,7 +1713,7 @@
     const contMobile = document.getElementById('listaHistorialMobile');
     contMobile.innerHTML = pedidos.map(p => `
       <div class="historial-card">
-        ${p.imagen_url ? `<img class="foto-prod" src="${p.imagen_url}" loading="lazy" onerror="this.style.display='none'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}
+        ${fotoDe(p) ? `<img class="foto-prod" src="${fotoDe(p)}" loading="lazy" onerror="this.style.display='none'" />` : `<div class="foto-prod placeholder">Sin foto</div>`}
         <div class="info">
           <div class="titulo">${p.titulo || 'Pedido #'+p.order_id}</div>
           <div class="meta">${p.vendedor_nickname || '-'} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : '-'}</div>
@@ -1715,7 +1798,7 @@
       div.className = 'pendiente-card';
       div.innerHTML = `
         <a href="${urlCompraML(p)}" target="_blank" style="flex-shrink:0;">
-          ${p.imagen_url ? `<img class="pendiente-foto" src="${p.imagen_url}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+          ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
         </a>
         <div class="pendiente-info">
           <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
@@ -1845,7 +1928,7 @@
       const div = document.createElement('div');
       div.className = 'pendiente-card';
       div.innerHTML = `
-        ${p.imagen_url ? `<img class="pendiente-foto" src="${p.imagen_url}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+        ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
         <div class="pendiente-info">
           <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
           <div class="pendiente-meta">${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
