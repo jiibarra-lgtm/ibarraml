@@ -1323,7 +1323,7 @@
   let scannerActivo = null;
 
   function buscarPorTracking(codigo) {
-    const codigoLimpio = String(codigo).trim();
+    const codigoLimpio = extraerIdDeCodigo(codigo);
     return TODOS.find(p => {
       const candidatos = [
         p.tracking_number,
@@ -1377,9 +1377,20 @@
     };
   }
 
+  function extraerIdDeCodigo(codigo) {
+    let limpio = String(codigo).trim();
+    if (limpio.startsWith('{')) {
+      try {
+        const data = JSON.parse(limpio);
+        if (data.id) limpio = String(data.id);
+      } catch { /* si no es JSON válido, seguimos con el texto tal cual */ }
+    }
+    return limpio;
+  }
+
   function onScanExitoso(codigoEscaneado) {
     const pedido = buscarPorTracking(codigoEscaneado);
-    mostrarResultadoScan(pedido, codigoEscaneado);
+    mostrarResultadoScan(pedido, extraerIdDeCodigo(codigoEscaneado));
     // pausa breve para no re-disparar el mismo código en loop mientras la cámara sigue apuntando
     if (scannerActivo) scannerActivo.pause(true);
     setTimeout(() => { if (scannerActivo) scannerActivo.resume(); }, 2000);
