@@ -234,6 +234,7 @@
   @media(max-width:800px){
     .solo-mobile{display:block;}
     .solo-desktop{display:none;}
+    #layoutMensajes{grid-template-columns:1fr !important;}
   }
 
   @media print {
@@ -298,6 +299,7 @@
 
       <div class="nav-section">Organización</div>
       <div class="nav-item" data-pagina="lugares"><span class="ic"><i class="ti ti-building"></i></span> Lugares</div>
+      <div class="nav-item" data-pagina="mensajes"><span class="ic"><i class="ti ti-message-circle"></i></span> Mensajes</div>
 
       <div class="nav-section">Análisis</div>
       <div class="nav-item" data-pagina="checklist"><span class="ic"><i class="ti ti-checklist"></i></span> Checklist del negocio</div>
@@ -611,8 +613,24 @@
       </div>
       <div class="panel" style="margin-top:14px;">
         <h3>Compras sin asignar a ningún lugar</h3>
-        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Pedidos entregados que todavía no le asignaste un destino.</p>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Todas tus compras (llegaron o no) que todavía no tienen un lugar asignado.</p>
+        <input type="text" id="buscarSinLugar" placeholder="Buscar por producto..." style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px; margin-bottom:12px;" />
         <div id="listaSinLugar"></div>
+      </div>
+    </div>
+
+    <!-- MENSAJES -->
+    <div class="pagina" id="pagina-mensajes">
+      <div class="filtros">
+        <input type="text" id="buscarMensajes" placeholder="Buscar pedido por título o vendedor..." style="flex:1; min-width:200px;" />
+      </div>
+      <div style="display:grid; grid-template-columns:280px 1fr; gap:14px;" id="layoutMensajes">
+        <div class="panel" style="padding:0; max-height:600px; overflow-y:auto;">
+          <div id="listaConversaciones"></div>
+        </div>
+        <div class="panel" id="panelConversacion">
+          <div class="empty">Elegí un pedido de la izquierda para ver su conversación con el vendedor.</div>
+        </div>
       </div>
     </div>
 
@@ -763,7 +781,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', mensajes:'Mensajes', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -776,6 +794,7 @@
     if (pag === 'sinfactura') renderSinFactura();
     if (pag === 'imprimirfacturas') renderImprimirFacturas();
     if (pag === 'lugares') renderLugares();
+    if (pag === 'mensajes') renderMensajes();
     if (pag === 'checklist') renderChecklist();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
@@ -2161,6 +2180,7 @@
     LUGARES = data || [];
   }
 
+  document.getElementById('buscarSinLugar').oninput = renderLugares;
   document.getElementById('btnAgregarLugar').onclick = async () => {
     const nombre = document.getElementById('lugarNombre').value.trim();
     if (!nombre) { alert('Ponele un nombre al lugar.'); return; }
@@ -2220,17 +2240,18 @@
       });
     }
 
-    const sinLugar = TODOS.filter(p => p.status_envio === 'delivered' && !p.lugar_id);
+    const buscarSL = document.getElementById('buscarSinLugar').value.toLowerCase();
+    const sinLugar = TODOS.filter(p => !p.lugar_id && (!buscarSL || (p.titulo||'').toLowerCase().includes(buscarSL)));
     const contSinLugar = document.getElementById('listaSinLugar');
     if (!sinLugar.length) {
-      contSinLugar.innerHTML = '<div class="empty">Todos los pedidos entregados ya tienen un lugar asignado. 👍</div>';
+      contSinLugar.innerHTML = '<div class="empty">No hay compras sin asignar que coincidan. 👍</div>';
     } else {
-      contSinLugar.innerHTML = sinLugar.slice(0, 30).map(p => `
+      contSinLugar.innerHTML = sinLugar.map(p => `
         <div class="pendiente-card">
           ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
           <div class="pendiente-info">
             <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-            <div class="pendiente-meta">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+            <div class="pendiente-meta">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''} · <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span></div>
           </div>
           <div class="pendiente-acciones">
             <label style="font-size:11px; color:var(--muted); font-weight:600; margin-bottom:2px;">Asignar:</label>
@@ -2250,6 +2271,66 @@
           renderLugares();
         };
       });
+    }
+  }
+
+  /* ---------- MENSAJES (solo lectura) ---------- */
+  document.getElementById('buscarMensajes').oninput = renderMensajes;
+
+  function renderMensajes() {
+    const busqueda = document.getElementById('buscarMensajes').value.toLowerCase();
+    const pedidosConVendedor = TODOS.filter(p => p.seller_id && (!busqueda || (p.titulo||'').toLowerCase().includes(busqueda) || (p.vendedor_nickname||'').toLowerCase().includes(busqueda)))
+      .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    const cont = document.getElementById('listaConversaciones');
+    if (!pedidosConVendedor.length) {
+      cont.innerHTML = '<div class="empty" style="padding:20px;">No hay pedidos que coincidan.</div>';
+      return;
+    }
+    cont.innerHTML = pedidosConVendedor.slice(0, 100).map(p => `
+      <div class="c-abrir-conversacion" data-order="${p.order_id}" style="padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer;">
+        <div style="font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.titulo || 'Pedido #'+p.order_id}</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:2px;">${p.vendedor_nickname||''} · ${p.fecha_creacion?new Date(p.fecha_creacion).toLocaleDateString('es-AR'):''}</div>
+      </div>
+    `).join('');
+    cont.querySelectorAll('.c-abrir-conversacion').forEach(item => {
+      item.onclick = () => {
+        cont.querySelectorAll('.c-abrir-conversacion').forEach(i => i.style.background = '');
+        item.style.background = 'var(--indigo-l)';
+        abrirConversacion(item.dataset.order);
+      };
+    });
+  }
+
+  async function abrirConversacion(orderId) {
+    const panel = document.getElementById('panelConversacion');
+    panel.innerHTML = '<div class="empty">Cargando conversación...</div>';
+    try {
+      const resp = await fetch(`/api/mensajes?order_id=${orderId}`);
+      const data = await resp.json();
+      if (!resp.ok) {
+        panel.innerHTML = `<div class="empty">No se pudieron traer los mensajes: ${data.error || 'error desconocido'}</div>`;
+        return;
+      }
+      if (!data.messages.length) {
+        panel.innerHTML = `<h3 style="margin-bottom:10px;">Conversación con ${data.vendedor || 'el vendedor'}</h3><div class="empty">Todavía no hay mensajes en este pedido.</div>`;
+        return;
+      }
+      const burbujas = data.messages.map(m => {
+        const esMio = String(m.from?.user_id) === data.mi_user_id;
+        const texto = typeof m.text === 'string' ? m.text : (m.text?.plain || '');
+        const fecha = m.message_date?.received || m.date_received;
+        return `
+          <div style="display:flex; justify-content:${esMio?'flex-end':'flex-start'}; margin-bottom:8px;">
+            <div style="max-width:75%; background:${esMio?'var(--indigo)':'var(--bg)'}; color:${esMio?'#fff':'var(--text)'}; padding:9px 12px; border-radius:12px; font-size:13px;">
+              ${texto}
+              <div style="font-size:10px; opacity:.7; margin-top:4px;">${fecha ? new Date(fecha).toLocaleString('es-AR') : ''}</div>
+            </div>
+          </div>`;
+      }).join('');
+      panel.innerHTML = `<h3 style="margin-bottom:12px;">Conversación con ${data.vendedor || 'el vendedor'}</h3><div>${burbujas}</div>`;
+    } catch (err) {
+      panel.innerHTML = `<div class="empty">Error de red al traer los mensajes.</div>`;
     }
   }
 
