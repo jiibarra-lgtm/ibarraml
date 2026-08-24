@@ -296,6 +296,9 @@
       <div class="nav-item" data-pagina="sinfactura"><span class="ic"><i class="ti ti-file-alert"></i></span> Facturas pendientes</div>
       <div class="nav-item" data-pagina="imprimirfacturas"><span class="ic"><i class="ti ti-printer"></i></span> Imprimir facturas</div>
 
+      <div class="nav-section">Organización</div>
+      <div class="nav-item" data-pagina="lugares"><span class="ic"><i class="ti ti-building"></i></span> Lugares</div>
+
       <div class="nav-section">Análisis</div>
       <div class="nav-item" data-pagina="checklist"><span class="ic"><i class="ti ti-checklist"></i></span> Checklist del negocio</div>
       <div class="nav-item" data-pagina="resumen"><span class="ic"><i class="ti ti-file-text"></i></span> Resumen mensual</div>
@@ -402,6 +405,17 @@
             <div class="acceso-icon"><i class="ti ti-settings"></i></div>
             <div class="acceso-nombre">Configuración</div>
             <div class="acceso-desc">Alertas y exportación de datos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grupo-accesos">
+        <div class="titulo-grupo">Organización</div>
+        <div class="grid-accesos">
+          <div class="acceso-card" data-ir="lugares">
+            <div class="acceso-icon"><i class="ti ti-building"></i></div>
+            <div class="acceso-nombre">Lugares</div>
+            <div class="acceso-desc">Asignar cada compra a un hospital o destino</div>
           </div>
         </div>
       </div>
@@ -580,6 +594,28 @@
       <div id="listaChecklist"></div>
     </div>
 
+    <!-- LUGARES -->
+    <div class="pagina" id="pagina-lugares">
+      <div class="panel">
+        <h3>Agregar lugar nuevo</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
+          <div class="campo"><label>Nombre</label><input type="text" id="lugarNombre" placeholder="ej: Hospital Muñiz" style="width:220px;" /></div>
+          <div class="campo"><label>Dirección</label><input type="text" id="lugarDireccion" placeholder="opcional" style="width:220px;" /></div>
+          <div class="campo"><label>Contacto</label><input type="text" id="lugarContacto" placeholder="opcional" style="width:180px;" /></div>
+          <button class="btn btn-primary" id="btnAgregarLugar">Agregar</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Tus lugares</h3>
+        <div id="listaLugares"></div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Compras sin asignar a ningún lugar</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Pedidos entregados que todavía no le asignaste un destino.</p>
+        <div id="listaSinLugar"></div>
+      </div>
+    </div>
+
     <!-- RESUMEN MENSUAL -->
     <div class="pagina" id="pagina-resumen">
       <div class="panel" id="resumenMensualContenido"></div>
@@ -727,7 +763,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -739,6 +775,7 @@
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
     if (pag === 'imprimirfacturas') renderImprimirFacturas();
+    if (pag === 'lugares') renderLugares();
     if (pag === 'checklist') renderChecklist();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
@@ -1095,6 +1132,17 @@
           </div>
         </div>
         <div>
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Lugar de entrega</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <select class="c-lugar" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); width:180px;">
+              <option value="">Sin asignar</option>
+              ${LUGARES.map(l => `<option value="${l.id}" ${p.lugar_id === l.id ? 'selected' : ''}>${l.nombre}</option>`).join('')}
+            </select>
+            <div class="campo"><label>Para quién</label><input type="text" class="c-destinatario" value="${p.destinatario_interno??''}" placeholder="ej: Dr. Pérez" /></div>
+            <div class="campo"><label>Notas de entrega</label><input type="text" class="c-notas-entrega" value="${p.notas_entrega??''}" /></div>
+          </div>
+        </div>
+        <div>
           <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Reclamo / devolución</div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <div class="campo check"><input type="checkbox" class="c-reclamo" ${p.reclamo_abierto?'checked':''} /><label>Reclamo abierto</label></div>
@@ -1156,6 +1204,9 @@
         cargado_en_cotizador: td.querySelector('.c-cotizador').checked,
         factura_url: facturaUrl,
         imagen_manual_url: imagenManualUrl,
+        lugar_id: td.querySelector('.c-lugar').value ? Number(td.querySelector('.c-lugar').value) : null,
+        destinatario_interno: td.querySelector('.c-destinatario').value || null,
+        notas_entrega: td.querySelector('.c-notas-entrega').value || null,
         reclamo_abierto: td.querySelector('.c-reclamo').checked,
         reclamo_fecha_limite: td.querySelector('.c-plazo').value || null,
       }).eq('order_id', p.order_id);
@@ -1335,6 +1386,46 @@
     });
   }
 
+  function bloqueLugarScan(pedido) {
+    const lugarActual = LUGARES.find(l => l.id === pedido.lugar_id);
+    if (lugarActual) {
+      return `
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Es para</div>
+          <div style="font-weight:600; font-size:14px; color:var(--indigo);">🏥 ${lugarActual.nombre}</div>
+          ${pedido.destinatario_interno ? `<div style="font-size:12px; color:var(--text);">Para: ${pedido.destinatario_interno}</div>` : ''}
+          ${pedido.notas_entrega ? `<div style="font-size:12px; color:var(--muted);">${pedido.notas_entrega}</div>` : ''}
+        </div>`;
+    }
+    return `
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+        <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">¿Para dónde es? (todavía sin asignar)</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <select id="selLugarScan" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;">
+            <option value="">Elegir lugar...</option>
+            ${LUGARES.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('')}
+          </select>
+          <input type="text" id="inputDestinatarioScan" placeholder="Para quién (opcional)" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;" />
+        </div>
+        <button class="btn btn-outline" id="btnAsignarLugarScan" style="margin-top:8px; width:100%; font-size:12px;">Asignar lugar</button>
+      </div>`;
+  }
+
+  function conectarBloqueLugarScan(pedido) {
+    const btn = document.getElementById('btnAsignarLugarScan');
+    if (!btn) return;
+    btn.onclick = async () => {
+      const lugarId = document.getElementById('selLugarScan').value;
+      if (!lugarId) { alert('Elegí un lugar primero.'); return; }
+      const destinatario = document.getElementById('inputDestinatarioScan').value || null;
+      await db.from('pedidos').update({ lugar_id: Number(lugarId), destinatario_interno: destinatario }).eq('order_id', pedido.order_id);
+      pedido.lugar_id = Number(lugarId);
+      pedido.destinatario_interno = destinatario;
+      mostrarResultadoScan(pedido, null);
+      cargarPedidos();
+    };
+  }
+
   function mostrarResultadoScan(pedido, codigoEscaneado) {
     const cont = document.getElementById('resultadoScan');
     if (!pedido) {
@@ -1349,25 +1440,28 @@
       cont.innerHTML = `
         <div class="panel" style="border-color:var(--ok);">
           <div style="display:flex; gap:10px; align-items:center;">
-            ${pedido.imagen_url ? `<img class="foto-prod" src="${pedido.imagen_url}" style="width:52px;height:52px;" />` : ''}
+            ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
             <div>
               <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
               <div style="color:var(--ok); font-size:12px; margin-top:2px;">✓ Ya estaba marcado como recibido</div>
             </div>
           </div>
+          ${bloqueLugarScan(pedido)}
         </div>`;
+      conectarBloqueLugarScan(pedido);
       return;
     }
     cont.innerHTML = `
       <div class="panel" style="border-color:var(--indigo);">
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-          ${pedido.imagen_url ? `<img class="foto-prod" src="${pedido.imagen_url}" style="width:52px;height:52px;" />` : ''}
+          ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
           <div>
             <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
             <div style="color:var(--muted); font-size:12px; margin-top:2px;">${pedido.vendedor_nickname||''} · ${fmtMoneda(pedido.total)}</div>
           </div>
         </div>
         <button class="btn btn-primary" id="btnConfirmarRecibido" style="width:100%;">Marcar como recibido</button>
+        ${bloqueLugarScan(pedido)}
       </div>`;
     document.getElementById('btnConfirmarRecibido').onclick = async () => {
       await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', pedido.order_id);
@@ -1375,6 +1469,7 @@
       mostrarResultadoScan(pedido, codigoEscaneado);
       cargarPedidos();
     };
+    conectarBloqueLugarScan(pedido);
   }
 
   function extraerIdDeCodigo(codigo) {
@@ -2050,8 +2145,94 @@
     cargarPedidos();
   };
 
+  /* ---------- LUGARES ---------- */
+  let LUGARES = [];
+
+  async function cargarLugares() {
+    const { data } = await db.from('lugares').select('*').order('nombre');
+    LUGARES = data || [];
+  }
+
+  document.getElementById('btnAgregarLugar').onclick = async () => {
+    const nombre = document.getElementById('lugarNombre').value.trim();
+    if (!nombre) { alert('Ponele un nombre al lugar.'); return; }
+    const direccion = document.getElementById('lugarDireccion').value.trim() || null;
+    const contacto = document.getElementById('lugarContacto').value.trim() || null;
+    const { error } = await db.from('lugares').insert({ nombre, direccion, contacto });
+    if (error) { alert('Error: ' + error.message); return; }
+    document.getElementById('lugarNombre').value = '';
+    document.getElementById('lugarDireccion').value = '';
+    document.getElementById('lugarContacto').value = '';
+    await cargarLugares();
+    renderLugares();
+  };
+
+  async function renderLugares() {
+    await cargarLugares();
+
+    const contLugares = document.getElementById('listaLugares');
+    if (!LUGARES.length) {
+      contLugares.innerHTML = '<div class="empty">Todavía no cargaste ningún lugar. Agregá el primero arriba (ej: un hospital, un cliente, un depósito).</div>';
+    } else {
+      contLugares.innerHTML = LUGARES.map(l => {
+        const cantAsignadas = TODOS.filter(p => p.lugar_id === l.id).length;
+        return `
+        <div class="reclamo-item">
+          <div>
+            <div style="font-weight:600; font-size:13px;">${l.nombre}</div>
+            <div style="font-size:11.5px; color:var(--muted); margin-top:2px;">${l.direccion || ''}${l.contacto ? ' · ' + l.contacto : ''}</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span style="font-size:12px; color:var(--muted);">${cantAsignadas} compra(s) asignada(s)</span>
+            <button class="btn btn-outline c-borrar-lugar" data-id="${l.id}" style="font-size:11px; padding:5px 10px;">Borrar</button>
+          </div>
+        </div>`;
+      }).join('');
+      contLugares.querySelectorAll('.c-borrar-lugar').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('¿Borrar este lugar? Las compras asignadas quedarán sin lugar.')) return;
+          await db.from('lugares').delete().eq('id', btn.dataset.id);
+          await cargarLugares();
+          renderLugares();
+        };
+      });
+    }
+
+    const sinLugar = TODOS.filter(p => p.status_envio === 'delivered' && !p.lugar_id);
+    const contSinLugar = document.getElementById('listaSinLugar');
+    if (!sinLugar.length) {
+      contSinLugar.innerHTML = '<div class="empty">Todos los pedidos entregados ya tienen un lugar asignado. 👍</div>';
+    } else {
+      contSinLugar.innerHTML = sinLugar.slice(0, 30).map(p => `
+        <div class="pendiente-card">
+          ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+          <div class="pendiente-info">
+            <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+            <div class="pendiente-meta">${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+          </div>
+          <div class="pendiente-acciones">
+            <select class="c-asignar-lugar" data-order="${p.order_id}" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+              <option value="">Elegir lugar...</option>
+              ${LUGARES.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `).join('');
+      contSinLugar.querySelectorAll('.c-asignar-lugar').forEach(sel => {
+        sel.onchange = async (e) => {
+          if (!e.target.value) return;
+          await db.from('pedidos').update({ lugar_id: Number(e.target.value) }).eq('order_id', e.target.dataset.order);
+          const p2 = TODOS.find(x => String(x.order_id) === e.target.dataset.order);
+          if (p2) p2.lugar_id = Number(e.target.value);
+          renderLugares();
+        };
+      });
+    }
+  }
+
   function init() {
     cargarConfig();
+    cargarLugares();
     cargarPedidos();
     sincronizarCompleto(); // primera vez: trae todo con fotos
     setInterval(() => sincronizarLiviano(), 20000); // después: solo chequeos rápidos
