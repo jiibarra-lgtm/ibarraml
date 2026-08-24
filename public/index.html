@@ -1902,7 +1902,9 @@
     for (const p of pedidos) {
       const div = document.createElement('div');
       div.className = 'pendiente-card';
+      if (p.mensaje_factura_enviado) div.style.opacity = '0.55';
       div.innerHTML = `
+        <input type="checkbox" class="c-mensaje-enviado" data-order="${p.order_id}" ${p.mensaje_factura_enviado?'checked':''} title="Ya le mandé el mensaje" style="width:20px; height:20px; margin-top:20px; flex-shrink:0; accent-color:var(--teal);" />
         <a href="${urlCompraML(p)}" target="_blank" style="flex-shrink:0;">
           ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
         </a>
@@ -1911,6 +1913,7 @@
           <div class="pendiente-meta">
             ${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)}<br/>
             ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''} · <span class="badge ${badgeClass(p.status_envio)}">${badgeLabel(p.status_envio)}</span>
+            ${p.mensaje_factura_enviado ? ' · <span style="color:var(--ok); font-size:11px;">✓ Ya le escribiste</span>' : ''}
           </div>
         </div>
         <div class="pendiente-acciones">
@@ -1919,6 +1922,11 @@
           <a class="btn btn-outline" style="font-size:12px; padding:8px 10px; text-align:center; text-decoration:none;" href="https://myaccount.mercadolibre.com.ar/my_purchases/list" target="_blank" onclick="navigator.clipboard.writeText('${(p.titulo||'').replace(/'/g,"")}')">Buscarlo en Mis Compras (siempre funciona)</a>
         </div>
       `;
+      div.querySelector('.c-mensaje-enviado').onchange = async (e) => {
+        await db.from('pedidos').update({ mensaje_factura_enviado: e.target.checked }).eq('order_id', p.order_id);
+        p.mensaje_factura_enviado = e.target.checked;
+        renderSinFactura();
+      };
       div.querySelector('.c-copiar').onclick = (e) => {
         navigator.clipboard.writeText(textoReclamoFactura(p)).then(() => {
           e.target.textContent = 'Copiado ✓';
