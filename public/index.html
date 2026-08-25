@@ -564,9 +564,15 @@
     <!-- FACTURAS PENDIENTES -->
     <div class="pagina" id="pagina-sinfactura">
       <div class="stats" id="statsSinFactura"></div>
+      <div style="margin-bottom:12px;">
+        <button class="btn btn-primary" id="btnRevisarFacturas"><i class="ti ti-refresh"></i> Revisar si llegaron facturas nuevas</button>
+        <span id="estadoRevisarFacturas" style="font-size:12px; color:var(--teal); margin-left:10px;"></span>
+      </div>
       <div class="filtros">
         <select id="filtroTipoFactura">
           <option value="ml">Sin factura del vendedor (ML)</option>
+          <option value="ml_sin_contactar">Sin factura Y todavía no le escribiste</option>
+          <option value="ml_ya_contactado">Sin factura pero ya le escribiste</option>
           <option value="manual">Sin tu factura manual</option>
           <option value="ambas">Sin ninguna de las dos</option>
         </select>
@@ -577,6 +583,7 @@
           <option value="monto_asc">Monto: menor a mayor</option>
           <option value="monto_desc">Monto: mayor a menor</option>
         </select>
+        <button class="btn btn-outline" id="btnVerTodoSinFactura">Ver todos de nuevo</button>
       </div>
       <div id="listaSinFactura"></div>
     </div>
@@ -1867,6 +1874,38 @@
 
   /* ---------- FACTURAS PENDIENTES ---------- */
   document.getElementById('filtroTipoFactura').onchange = renderSinFactura;
+  document.getElementById('btnVerTodoSinFactura').onclick = () => {
+    document.getElementById('filtroTipoFactura').value = 'ml';
+    document.getElementById('buscarSinFactura').value = '';
+    document.getElementById('ordenSinFactura').value = 'fecha_desc';
+    renderSinFactura();
+  };
+
+  document.getElementById('btnRevisarFacturas').onclick = async () => {
+    const btn = document.getElementById('btnRevisarFacturas');
+    const estado = document.getElementById('estadoRevisarFacturas');
+    btn.disabled = true;
+    let offset = 0;
+    const limit = 30;
+    let total = Infinity;
+    let encontradasAcum = 0;
+
+    while (offset < total) {
+      try {
+        const resp = await fetch(`/api/revisar-facturas?offset=${offset}&limit=${limit}`);
+        const data = await resp.json();
+        if (!resp.ok) { estado.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
+        total = data.total;
+        encontradasAcum += data.encontradas;
+        estado.textContent = `Revisando... ${Math.min(offset + limit, total)} / ${total} (${encontradasAcum} facturas nuevas encontradas)`;
+        if (data.done) break;
+        offset = data.next_offset;
+      } catch (e) { estado.textContent = 'Error de red: ' + e.message; break; }
+    }
+    estado.textContent = `Listo — se encontraron ${encontradasAcum} facturas nuevas.`;
+    btn.disabled = false;
+    cargarPedidos();
+  };
   document.getElementById('buscarSinFactura').oninput = renderSinFactura;
   document.getElementById('ordenSinFactura').onchange = renderSinFactura;
 
@@ -1886,6 +1925,8 @@
 
     let pedidos = TODOS.filter(p => {
       if (tipo === 'ml') return !p.factura_ml_id;
+      if (tipo === 'ml_sin_contactar') return !p.factura_ml_id && !p.mensaje_factura_enviado;
+      if (tipo === 'ml_ya_contactado') return !p.factura_ml_id && p.mensaje_factura_enviado;
       if (tipo === 'manual') return !p.factura_adjunta;
       return !p.factura_ml_id && !p.factura_adjunta;
     });
@@ -1904,14 +1945,16 @@
     const montoSinMl = sinMl.reduce((a,p) => a + (montoReal(p)||0), 0);
     const montoSinManual = sinManual.reduce((a,p) => a + (montoReal(p)||0), 0);
     const montoMostrando = pedidos.reduce((a,p) => a + (montoReal(p)||0), 0);
+    const yaReclamados = sinMl.filter(p => p.mensaje_factura_enviado).length;
+    const sinContactar = sinMl.length - yaReclamados;
 
     document.getElementById('statsSinFactura').innerHTML = `
       <div class="stat"><div class="num" style="color:var(--warn)">${sinMl.length}</div><div class="lbl">Sin factura del vendedor</div></div>
       <div class="stat"><div class="num" style="color:var(--warn)">${fmtMoneda(montoSinMl)}</div><div class="lbl">Monto sin factura del vendedor</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${yaReclamados}</div><div class="lbl">Ya le reclamaste, esperando respuesta</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">${sinContactar}</div><div class="lbl">Todavía no le escribiste</div></div>
       <div class="stat"><div class="num" style="color:var(--bad)">${sinManual.length}</div><div class="lbl">Sin tu factura manual</div></div>
-      <div class="stat"><div class="num" style="color:var(--bad)">${fmtMoneda(montoSinManual)}</div><div class="lbl">Monto sin tu factura manual</div></div>
-      <div class="stat"><div class="num">${pedidos.length}</div><div class="lbl">Mostrando ahora</div></div>
-      <div class="stat"><div class="num">${fmtMoneda(montoMostrando)}</div><div class="lbl">Monto de lo que se muestra</div></div>
+      <div class="stat"><div class="num">${fmtMoneda(montoSinManual)}</div><div class="lbl">Monto sin tu factura manual</div></div>
     `;
 
     const cont = document.getElementById('listaSinFactura');
