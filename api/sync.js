@@ -97,6 +97,30 @@ async function getFacturaVendedor(packId, accessToken) {
   } catch { return null; }
 }
 
+const PLANTILLA_FACTURA_DEFAULT = 'Hola! Te escribo por la compra "{titulo}" (pedido #{numero}) del {fecha}.\n\n¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!';
+
+function armarTextoFactura(plantilla, datos) {
+  return (plantilla || PLANTILLA_FACTURA_DEFAULT)
+    .replaceAll('{titulo}', datos.titulo || '')
+    .replaceAll('{numero}', String(datos.numero || ''))
+    .replaceAll('{fecha}', datos.fecha || '')
+    .replaceAll('{vendedor}', datos.vendedor || '')
+    .slice(0, 350); // límite real de ML por mensaje
+}
+
+async function enviarMensajeAutomatico(accessToken, buyerUserId, packId, sellerId, texto) {
+  try {
+    const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${sellerId}?tag=post_sale`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: { user_id: String(buyerUserId) }, to: { user_id: String(sellerId) }, text: texto }),
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -115,6 +139,10 @@ export default async function handler(req, res) {
 
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
+
+    // Traemos la plantilla configurada (si el usuario la personalizó) para el mensaje automático
+    const { data: configRow } = await supabase.from('config').select('plantilla_factura').eq('id', 1).single();
+    const plantillaFactura = configRow?.plantilla_factura || PLANTILLA_FACTURA_DEFAULT;
 
     let url = `https://api.mercadolibre.com/orders/search?buyer=${authRow.user_id}&sort=date_desc&offset=${offset}&limit=${limit}`;
     if (from) url += `&order.date_created.from=${encodeURIComponent(from)}`;
@@ -232,6 +260,21 @@ export default async function handler(req, res) {
         payload.factura_ml_id = facturaVendedor.id;
         payload.factura_ml_filename = facturaVendedor.filename;
         payload.factura_ml_fecha = facturaVendedor.fecha;
+      }
+
+      // Mensaje automático pidiendo la factura: SOLO para pedidos genuinamente nuevos
+      // y de los últimos 2 días (evita mandarle mensajes en masa a vendedores de
+      // compras viejas la primera vez que se sincroniza todo el historial).
+      const esReciente = order.date_created && (Date.now() - new Date(order.date_created).getTime()) < 2 * 24 * 60 * 60 * 1000;
+      if (esNuevo && esReciente && !facturaVendedor && order.seller?.id) {
+        const texto = armarTextoFactura(plantillaFactura, {
+          titulo: primerItem?.title,
+          numero: order.pack_id || order.id,
+          fecha: new Date(order.date_created).toLocaleDateString('es-AR'),
+          vendedor: order.seller?.nickname,
+        });
+        const enviado = await enviarMensajeAutomatico(accessToken, authRow.user_id, order.pack_id || order.id, order.seller.id, texto);
+        if (enviado) payload.mensaje_factura_enviado = true;
       }
 
       const { error: upsertErr } = await supabase.from('pedidos').upsert(payload, { onConflict: 'order_id' });
