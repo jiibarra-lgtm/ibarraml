@@ -148,7 +148,12 @@ export default async function handler(req, res) {
     if (from) url += `&order.date_created.from=${encodeURIComponent(from)}`;
     if (to) url += `&order.date_created.to=${encodeURIComponent(to)}`;
 
-    const ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    let ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (ordersResp.status === 429) {
+      // ML nos frenó por exceso de consultas: esperamos un momento y reintentamos una vez
+      await new Promise(r => setTimeout(r, 3000));
+      ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    }
     const ordersData = await ordersResp.json();
     if (!ordersResp.ok) {
       return res.status(400).json({ error: 'Error consultando pedidos', detail: ordersData });

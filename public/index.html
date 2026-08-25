@@ -2382,7 +2382,7 @@
     cargarLugares();
     cargarPedidos();
     sincronizarCompleto(); // primera vez: trae todo con fotos
-    setInterval(() => sincronizarLiviano(), 20000); // después: solo chequeos rápidos
+    setInterval(() => sincronizarLiviano(), 120000); // cada 2 minutos, para no chocar con el límite de consultas de ML
   }
 </script>
 </body>
