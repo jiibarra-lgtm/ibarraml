@@ -307,6 +307,10 @@
       <div class="nav-item" data-pagina="anual"><span class="ic"><i class="ti ti-calendar-stats"></i></span> Comparativo anual</div>
       <div class="nav-item" data-pagina="reclamos"><span class="ic"><i class="ti ti-alert-triangle"></i></span> Devoluciones y reclamos</div>
 
+      <div class="nav-section">Vender</div>
+      <div class="nav-item" data-pagina="nuevapublicacion"><span class="ic"><i class="ti ti-plus"></i></span> Nueva publicación</div>
+      <div class="nav-item" data-pagina="mispublicaciones"><span class="ic"><i class="ti ti-list-details"></i></span> Mis publicaciones</div>
+
       <div class="nav-section">Sistema</div>
       <div class="nav-item" data-pagina="config"><span class="ic"><i class="ti ti-settings"></i></span> Configuración</div>
     </nav>
@@ -689,6 +693,45 @@
       </div>
     </div>
 
+    <!-- NUEVA PUBLICACION -->
+    <div class="pagina" id="pagina-nuevapublicacion">
+      <div class="panel">
+        <h3>Publicar un producto en Mercado Libre</h3>
+        <p style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">
+          Necesita que el permiso "Publicación y sincronización" esté en Lectura y escritura en el DevCenter de ML. La categoría se sugiere sola a partir del título — es obligatorio usar la sugerida, si no ML modera la publicación.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:12px; max-width:520px;">
+          <div class="campo"><label>Título</label><input type="text" id="pubTitulo" style="width:100%;" placeholder="ej: Guantes de nitrilo caja x 100" /></div>
+          <div class="campo">
+            <label>Categoría sugerida</label>
+            <select id="pubCategoria" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+              <option value="">Escribí el título y salí del campo para ver sugerencias</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="campo" style="flex:1;"><label>Precio</label><input type="number" step="0.01" id="pubPrecio" style="width:100%;" /></div>
+            <div class="campo" style="flex:1;"><label>Stock</label><input type="number" id="pubStock" style="width:100%;" value="1" /></div>
+            <div class="campo" style="flex:1;">
+              <label>Condición</label>
+              <select id="pubCondicion" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+                <option value="new">Nuevo</option>
+                <option value="used">Usado</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo"><label>Fotos (hasta 6)</label><input type="file" id="pubFotos" accept="image/*" multiple /></div>
+          <div class="campo"><label>Descripción</label><textarea id="pubDescripcion" rows="4" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit;"></textarea></div>
+          <button class="btn btn-primary" id="btnPublicar" style="align-self:flex-start;">Publicar en Mercado Libre</button>
+          <div id="estadoPublicar" style="font-size:12.5px; color:var(--teal);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIS PUBLICACIONES -->
+    <div class="pagina" id="pagina-mispublicaciones">
+      <div id="listaMisPublicaciones"></div>
+    </div>
+
     <!-- CONFIG -->
     <div class="pagina" id="pagina-config">
       <div class="panel">
@@ -729,6 +772,14 @@
           <div class="campo"><label>Categoría</label><input type="text" id="manCategoria" placeholder="opcional" /></div>
           <button class="btn btn-primary" id="btnAgregarManual">Agregar</button>
         </div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Probar el mensaje automático de factura</h3>
+        <p style="color:var(--muted); font-size:12.5px; margin-bottom:10px;">
+          Manda ahora mismo el mensaje automático a un pedido real tuyo que todavía no tenga factura, para confirmar que el permiso de mensajería está bien configurado — sin esperar una compra nueva.
+        </p>
+        <button class="btn btn-outline" id="btnTestMensaje">Probar ahora</button>
+        <div id="resultadoTestMensaje" style="margin-top:10px; font-size:13px;"></div>
       </div>
     </div>
   </main>
@@ -788,7 +839,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', mensajes:'Mensajes', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -802,6 +853,7 @@
     if (pag === 'imprimirfacturas') renderImprimirFacturas();
     if (pag === 'lugares') renderLugares();
     if (pag === 'mensajes') renderMensajes();
+    if (pag === 'mispublicaciones') renderMisPublicaciones();
     if (pag === 'checklist') renderChecklist();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
@@ -2215,6 +2267,26 @@
     cargarPedidos();
   };
 
+  document.getElementById('btnTestMensaje').onclick = async () => {
+    const resultado = document.getElementById('resultadoTestMensaje');
+    resultado.style.color = 'var(--teal)';
+    resultado.textContent = 'Probando...';
+    try {
+      const resp = await fetch('/api/test-mensaje');
+      const data = await resp.json();
+      if (data.funciona) {
+        resultado.style.color = 'var(--ok)';
+        resultado.innerHTML = `✅ Funciona — se mandó el mensaje a <b>${data.vendedor || 'el vendedor'}</b> por el pedido "${data.pedido}".`;
+      } else {
+        resultado.style.color = 'var(--bad)';
+        resultado.innerHTML = `❌ No funcionó — ${data.error?.message || JSON.stringify(data.error) || 'error desconocido'}.<br/>Revisá que el permiso "Comunicaciones pre y post ventas" esté en Lectura y escritura y que hayas reconectado.`;
+      }
+    } catch (e) {
+      resultado.style.color = 'var(--bad)';
+      resultado.textContent = 'Error de red: ' + e.message;
+    }
+  };
+
   /* ---------- LUGARES ---------- */
   let LUGARES = [];
 
@@ -2375,6 +2447,91 @@
     } catch (err) {
       panel.innerHTML = `<div class="empty">Error de red al traer los mensajes.</div>`;
     }
+  }
+
+  /* ---------- NUEVA PUBLICACIÓN ---------- */
+  document.getElementById('pubTitulo').addEventListener('blur', async () => {
+    const titulo = document.getElementById('pubTitulo').value.trim();
+    const sel = document.getElementById('pubCategoria');
+    if (!titulo) return;
+    sel.innerHTML = '<option value="">Buscando categorías...</option>';
+    try {
+      const resp = await fetch(`/api/predecir-categoria?q=${encodeURIComponent(titulo)}`);
+      const data = await resp.json();
+      if (!resp.ok || !data.predicciones?.length) {
+        sel.innerHTML = '<option value="">No se encontraron sugerencias, probá con otro título</option>';
+        return;
+      }
+      sel.innerHTML = data.predicciones.map(p => `<option value="${p.category_id}">${p.category_name}</option>`).join('');
+    } catch {
+      sel.innerHTML = '<option value="">Error buscando categorías</option>';
+    }
+  });
+
+  document.getElementById('btnPublicar').onclick = async () => {
+    const estado = document.getElementById('estadoPublicar');
+    const titulo = document.getElementById('pubTitulo').value.trim();
+    const categoryId = document.getElementById('pubCategoria').value;
+    const precio = document.getElementById('pubPrecio').value;
+    const stock = document.getElementById('pubStock').value;
+    const condicion = document.getElementById('pubCondicion').value;
+    const descripcion = document.getElementById('pubDescripcion').value;
+    const archivos = document.getElementById('pubFotos').files;
+
+    if (!titulo || !categoryId || !precio || !stock) {
+      estado.textContent = 'Completá título, categoría, precio y stock.'; estado.style.color = 'var(--bad)';
+      return;
+    }
+
+    estado.style.color = 'var(--teal)';
+    estado.textContent = 'Subiendo fotos...';
+    const urlsFotos = [];
+    for (const archivo of archivos) {
+      const nombre = `pub_${Date.now()}_${archivo.name}`;
+      const { error } = await db.storage.from('facturas').upload(nombre, archivo);
+      if (!error) urlsFotos.push(db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl);
+    }
+
+    estado.textContent = 'Publicando en Mercado Libre...';
+    try {
+      const resp = await fetch('/api/publicar-item', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo, category_id: categoryId, precio, stock, condicion, descripcion, fotos: urlsFotos }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        estado.style.color = 'var(--ok)';
+        estado.innerHTML = `✓ Publicado con éxito. <a href="${data.item.permalink}" target="_blank" style="color:var(--indigo);">Ver publicación</a>`;
+        document.getElementById('pubTitulo').value = '';
+        document.getElementById('pubPrecio').value = '';
+        document.getElementById('pubStock').value = '1';
+        document.getElementById('pubDescripcion').value = '';
+        document.getElementById('pubFotos').value = '';
+      } else {
+        estado.style.color = 'var(--bad)';
+        estado.textContent = 'Error: ' + (data.error || 'desconocido') + (data.detail?.message ? ' — ' + data.detail.message : '');
+      }
+    } catch (e) {
+      estado.style.color = 'var(--bad)';
+      estado.textContent = 'Error de red: ' + e.message;
+    }
+  };
+
+  async function renderMisPublicaciones() {
+    const cont = document.getElementById('listaMisPublicaciones');
+    const { data, error } = await db.from('mis_publicaciones').select('*').order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="empty">Error cargando: ${error.message}</div>`; return; }
+    if (!data.length) { cont.innerHTML = '<div class="empty">Todavía no publicaste nada desde acá.</div>'; return; }
+    cont.innerHTML = data.map(p => `
+      <div class="pendiente-card">
+        ${p.fotos?.[0] ? `<img class="pendiente-foto" src="${p.fotos[0]}" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+        <div class="pendiente-info">
+          <div class="pendiente-titulo">${p.titulo}</div>
+          <div class="pendiente-meta">${fmtMoneda(p.precio)} · Stock: ${p.stock} · <span class="badge ${p.status==='active'?'delivered':'other'}">${p.status}</span></div>
+        </div>
+        ${p.permalink ? `<a class="btn btn-outline" href="${p.permalink}" target="_blank" style="font-size:12px; padding:8px 10px; text-decoration:none;">Ver en ML</a>` : ''}
+      </div>
+    `).join('');
   }
 
   function init() {
