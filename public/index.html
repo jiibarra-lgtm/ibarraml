@@ -1492,7 +1492,7 @@
     const bloque = 1000; // Supabase devuelve máximo 1000 filas por consulta si no se pagina
     while (true) {
       const { data, error } = await db.from('pedidos')
-        .select(COLUMNAS_PEDIDOS)
+        .select('*')
         .order('fecha_creacion', { ascending: false })
         .range(desde, desde + bloque - 1);
       if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
