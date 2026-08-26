@@ -626,12 +626,8 @@
         <div id="estadoSolicitarFacturas" style="font-size:12px; color:var(--teal); margin-top:8px;"></div>
       </div>
       <div class="panel">
-        <h3>Candidatas (todavía no enviado)</h3>
+        <h3>Compras sin factura</h3>
         <div id="listaSolicitarNuevas"></div>
-      </div>
-      <div class="panel" style="margin-top:14px;">
-        <h3>Ya enviadas</h3>
-        <div id="listaSolicitarEnviadas"></div>
       </div>
       <div class="panel" style="margin-top:14px;">
         <h3>👀 Te dejaron en visto</h3>
@@ -2734,38 +2730,26 @@
   /* ---------- SOLICITAR FACTURAS ---------- */
   function renderSolicitarFacturas() {
     document.getElementById('chkAutoSolicitar').checked = CONFIG.auto_solicitar_factura !== false;
-    const candidatas = TODOS.filter(p => !p.factura_ml_id && !p.mensaje_factura_enviado && p.seller_id)
-      .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
-    const enviadas = TODOS.filter(p => p.mensaje_factura_enviado)
+    const todasSinFactura = TODOS.filter(p => !p.factura_ml_id && p.seller_id)
       .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
 
     const contNuevas = document.getElementById('listaSolicitarNuevas');
-    if (!candidatas.length) {
-      contNuevas.innerHTML = '<div class="empty">No hay compras nuevas esperando factura por ahora.</div>';
+    if (!todasSinFactura.length) {
+      contNuevas.innerHTML = '<div class="empty">No hay compras esperando factura por ahora.</div>';
     } else {
-      contNuevas.innerHTML = candidatas.map(p => `
-        <div class="pendiente-card">
-          <input type="checkbox" class="c-check-solicitar" data-order="${p.order_id}" style="width:20px; height:20px; margin-top:20px; flex-shrink:0; accent-color:var(--teal);" />
+      contNuevas.innerHTML = todasSinFactura.map(p => `
+        <div class="pendiente-card" ${p.mensaje_factura_enviado ? 'style="opacity:0.55;"' : ''}>
+          <input type="checkbox" class="c-check-solicitar" data-order="${p.order_id}" ${p.mensaje_factura_enviado ? 'checked disabled' : ''} style="width:20px; height:20px; margin-top:20px; flex-shrink:0; accent-color:var(--teal);" />
           ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
           <div class="pendiente-info">
             <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-            <div class="pendiente-meta">${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+            <div class="pendiente-meta">${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}${p.mensaje_factura_enviado ? ' · <span style="color:var(--ok);">✓ Enviado</span>' : ''}</div>
           </div>
         </div>
       `).join('');
     }
 
-    const contEnviadas = document.getElementById('listaSolicitarEnviadas');
-    if (!enviadas.length) {
-      contEnviadas.innerHTML = '<div class="empty">Todavía no le enviaste el pedido de factura a nadie.</div>';
-    } else {
-      contEnviadas.innerHTML = enviadas.slice(0, 30).map(p => `
-        <div class="recientes-item" style="cursor:default;">
-          <span class="recientes-titulo" style="color:var(--text);">${p.titulo || 'Pedido #'+p.order_id}</span>
-          <span class="recientes-meta"><span class="badge delivered">✓ Enviado</span></span>
-        </div>
-      `).join('');
-    }
+    document.getElementById('listaSolicitarEnviadas').innerHTML = '';
   }
 
   document.getElementById('btnSeleccionarTodasSolicitar').onclick = () => {
