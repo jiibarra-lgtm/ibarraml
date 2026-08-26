@@ -721,6 +721,13 @@
           </div>
           <div class="campo"><label>Fotos (hasta 6)</label><input type="file" id="pubFotos" accept="image/*" multiple /></div>
           <div class="campo"><label>Descripción</label><textarea id="pubDescripcion" rows="4" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit;"></textarea></div>
+          <div id="atributosObligatorios" style="display:flex; flex-direction:column; gap:10px;"></div>
+          <div class="campo">
+            <label>Vincular con una compra tuya (opcional, para calcular margen)</label>
+            <select id="pubCompraVinculada" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+              <option value="">Sin vincular</option>
+            </select>
+          </div>
           <button class="btn btn-primary" id="btnPublicar" style="align-self:flex-start;">Publicar en Mercado Libre</button>
           <div id="estadoPublicar" style="font-size:12.5px; color:var(--teal);"></div>
         </div>
@@ -729,6 +736,11 @@
 
     <!-- MIS PUBLICACIONES -->
     <div class="pagina" id="pagina-mispublicaciones">
+      <div style="margin-bottom:12px;">
+        <button class="btn btn-primary" id="btnSyncPublicaciones"><i class="ti ti-refresh"></i> Traer mis publicaciones reales de ML</button>
+        <span id="estadoSyncPub" style="font-size:12px; color:var(--teal); margin-left:10px;"></span>
+      </div>
+      <div class="stats" id="statsPublicaciones"></div>
       <div id="listaMisPublicaciones"></div>
     </div>
 
@@ -854,6 +866,7 @@
     if (pag === 'lugares') renderLugares();
     if (pag === 'mensajes') renderMensajes();
     if (pag === 'mispublicaciones') renderMisPublicaciones();
+    if (pag === 'nuevapublicacion') cargarSelectorComprasVinculables();
     if (pag === 'checklist') renderChecklist();
     if (pag === 'resumen') renderResumenMensual();
     if (pag === 'anual') renderComparativoAnual();
@@ -1190,7 +1203,7 @@
         <div>
           <div style="font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Factura del vendedor (Mercado Libre)</div>
           ${p.factura_ml_id
-            ? `<a class="link-factura" href="/api/factura-ml?pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}" target="_blank">📄 ${p.factura_ml_filename || 'Ver factura'} (${p.factura_ml_fecha ? new Date(p.factura_ml_fecha).toLocaleDateString('es-AR') : ''})</a>`
+            ? `<a class="link-factura" href="/api/facturas?modo=descargar&pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}" target="_blank">📄 ${p.factura_ml_filename || 'Ver factura'} (${p.factura_ml_fecha ? new Date(p.factura_ml_fecha).toLocaleDateString('es-AR') : ''})</a>`
             : `<span style="font-size:12px; color:var(--muted);">El vendedor todavía no subió factura por Mercado Libre.</span>`}
         </div>
         <div>
@@ -1876,7 +1889,7 @@
         <td>
           <div class="factura-celda">
             ${p.factura_ml_id
-              ? `<a href="/api/factura-ml?pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}" target="_blank" style="text-decoration:none; color:inherit;"><span><span class="factura-dot si"></span> ML — Ver PDF</span></a>`
+              ? `<a href="/api/facturas?modo=descargar&pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}" target="_blank" style="text-decoration:none; color:inherit;"><span><span class="factura-dot si"></span> ML — Ver PDF</span></a>`
               : `<span><span class="factura-dot no"></span> ML</span>`}
             ${p.factura_adjunta && p.factura_url
               ? `<a href="${p.factura_url}" target="_blank" style="text-decoration:none; color:inherit;"><span><span class="factura-dot si"></span> Manual — Ver archivo</span></a>`
@@ -1944,7 +1957,7 @@
 
     while (offset < total) {
       try {
-        const resp = await fetch(`/api/revisar-facturas?offset=${offset}&limit=${limit}`);
+        const resp = await fetch(`/api/facturas?modo=revisar&offset=${offset}&limit=${limit}`);
         const data = await resp.json();
         if (!resp.ok) { estado.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
         total = data.total;
@@ -2171,7 +2184,7 @@
   }
 
   async function imprimirYMarcar(p) {
-    window.open(`/api/factura-ml?pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}`, '_blank');
+    window.open(`/api/facturas?modo=descargar&pack_id=${p.pack_id || p.order_id}&doc_id=${p.factura_ml_id}`, '_blank');
     await db.from('pedidos').update({ factura_impresa: true }).eq('order_id', p.order_id);
     p.factura_impresa = true;
     renderImprimirFacturas();
@@ -2272,7 +2285,7 @@
     resultado.style.color = 'var(--teal)';
     resultado.textContent = 'Probando...';
     try {
-      const resp = await fetch('/api/test-mensaje');
+      const resp = await fetch('/api/mensajes?modo=test');
       const data = await resp.json();
       if (data.funciona) {
         resultado.style.color = 'var(--ok)';
@@ -2456,17 +2469,54 @@
     if (!titulo) return;
     sel.innerHTML = '<option value="">Buscando categorías...</option>';
     try {
-      const resp = await fetch(`/api/predecir-categoria?q=${encodeURIComponent(titulo)}`);
+      const resp = await fetch(`/api/categoria?modo=predecir&q=${encodeURIComponent(titulo)}`);
       const data = await resp.json();
       if (!resp.ok || !data.predicciones?.length) {
         sel.innerHTML = '<option value="">No se encontraron sugerencias, probá con otro título</option>';
         return;
       }
       sel.innerHTML = data.predicciones.map(p => `<option value="${p.category_id}">${p.category_name}</option>`).join('');
+      sel.dispatchEvent(new Event('change'));
     } catch {
       sel.innerHTML = '<option value="">Error buscando categorías</option>';
     }
   });
+
+  document.getElementById('pubCategoria').addEventListener('change', async (e) => {
+    const categoryId = e.target.value;
+    const cont = document.getElementById('atributosObligatorios');
+    if (!categoryId) { cont.innerHTML = ''; return; }
+    cont.innerHTML = '<div style="font-size:12px; color:var(--muted);">Cargando atributos obligatorios de la categoría...</div>';
+    try {
+      const resp = await fetch(`/api/categoria?modo=info&category_id=${categoryId}`);
+      const data = await resp.json();
+      if (!resp.ok || !data.atributos_obligatorios?.length) {
+        cont.innerHTML = '<div style="font-size:12px; color:var(--muted);">Esta categoría no pide atributos obligatorios extra.</div>';
+        return;
+      }
+      cont.innerHTML = `<div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Atributos obligatorios de "${data.nombre}"</div>` +
+        data.atributos_obligatorios.map(a => {
+          if (a.tipo === 'list' && a.valores) {
+            return `<div class="campo"><label>${a.nombre} *</label>
+              <select class="c-attr-dinamico" data-id="${a.id}" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text);">
+                <option value="">Elegir...</option>
+                ${a.valores.map(v => `<option value="${v.id}">${v.nombre}</option>`).join('')}
+              </select></div>`;
+          }
+          return `<div class="campo"><label>${a.nombre} *</label><input type="text" class="c-attr-dinamico-texto" data-id="${a.id}" style="width:100%;" /></div>`;
+        }).join('');
+    } catch {
+      cont.innerHTML = '<div style="font-size:12px; color:var(--bad);">Error cargando atributos.</div>';
+    }
+  });
+
+  function cargarSelectorComprasVinculables() {
+    const sel = document.getElementById('pubCompraVinculada');
+    if (!sel) return;
+    const conNombreGenerico = TODOS.filter(p => p.producto_generico).slice(0, 200);
+    sel.innerHTML = '<option value="">Sin vincular</option>' +
+      conNombreGenerico.map(p => `<option value="${p.order_id}">${p.producto_generico} — compraste a ${fmtExacto(p.precio_compra || p.precio_unitario)}</option>`).join('');
+  }
 
   document.getElementById('btnPublicar').onclick = async () => {
     const estado = document.getElementById('estadoPublicar');
@@ -2477,9 +2527,26 @@
     const condicion = document.getElementById('pubCondicion').value;
     const descripcion = document.getElementById('pubDescripcion').value;
     const archivos = document.getElementById('pubFotos').files;
+    const pedidoVinculado = document.getElementById('pubCompraVinculada').value;
 
     if (!titulo || !categoryId || !precio || !stock) {
       estado.textContent = 'Completá título, categoría, precio y stock.'; estado.style.color = 'var(--bad)';
+      return;
+    }
+
+    // Juntar atributos obligatorios dinámicos
+    const attributes = [];
+    let faltaAlgunAtributo = false;
+    document.querySelectorAll('.c-attr-dinamico').forEach(sel => {
+      if (!sel.value) faltaAlgunAtributo = true;
+      else attributes.push({ id: sel.dataset.id, value_id: sel.value });
+    });
+    document.querySelectorAll('.c-attr-dinamico-texto').forEach(inp => {
+      if (!inp.value.trim()) faltaAlgunAtributo = true;
+      else attributes.push({ id: inp.dataset.id, value_name: inp.value.trim() });
+    });
+    if (faltaAlgunAtributo) {
+      estado.textContent = 'Completá todos los atributos obligatorios marcados con *.'; estado.style.color = 'var(--bad)';
       return;
     }
 
@@ -2496,17 +2563,24 @@
     try {
       const resp = await fetch('/api/publicar-item', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo, category_id: categoryId, precio, stock, condicion, descripcion, fotos: urlsFotos }),
+        body: JSON.stringify({ titulo, category_id: categoryId, precio, stock, condicion, descripcion, fotos: urlsFotos, attributes }),
       });
       const data = await resp.json();
       if (resp.ok) {
         estado.style.color = 'var(--ok)';
         estado.innerHTML = `✓ Publicado con éxito. <a href="${data.item.permalink}" target="_blank" style="color:var(--indigo);">Ver publicación</a>`;
+        if (pedidoVinculado) {
+          await db.from('mis_publicaciones').update({
+            pedido_origen_id: Number(pedidoVinculado),
+            producto_generico_vinculado: TODOS.find(p => String(p.order_id) === pedidoVinculado)?.producto_generico || null,
+          }).eq('item_id', data.item.id);
+        }
         document.getElementById('pubTitulo').value = '';
         document.getElementById('pubPrecio').value = '';
         document.getElementById('pubStock').value = '1';
         document.getElementById('pubDescripcion').value = '';
         document.getElementById('pubFotos').value = '';
+        document.getElementById('atributosObligatorios').innerHTML = '';
       } else {
         estado.style.color = 'var(--bad)';
         estado.textContent = 'Error: ' + (data.error || 'desconocido') + (data.detail?.message ? ' — ' + data.detail.message : '');
@@ -2517,21 +2591,95 @@
     }
   };
 
+  document.getElementById('btnSyncPublicaciones').onclick = async () => {
+    const estadoEl2 = document.getElementById('estadoSyncPub');
+    estadoEl2.textContent = 'Sincronizando con Mercado Libre...';
+    try {
+      const resp = await fetch('/api/publicaciones');
+      const data = await resp.json();
+      estadoEl2.textContent = resp.ok ? `Listo — ${data.guardadas} de ${data.total} publicaciones traídas.` : 'Error: ' + (data.error || 'desconocido');
+    } catch (e) { estadoEl2.textContent = 'Error de red: ' + e.message; }
+    renderMisPublicaciones();
+  };
+
+  function margenDe(pub) {
+    if (!pub.pedido_origen_id) return null;
+    const origen = TODOS.find(p => p.order_id === pub.pedido_origen_id);
+    if (!origen) return null;
+    const costo = origen.precio_compra ?? origen.precio_unitario;
+    if (!costo) return null;
+    const margen = pub.precio - costo;
+    const pct = costo > 0 ? (margen / costo) * 100 : 0;
+    return { margen, pct, costo };
+  }
+
   async function renderMisPublicaciones() {
     const cont = document.getElementById('listaMisPublicaciones');
     const { data, error } = await db.from('mis_publicaciones').select('*').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="empty">Error cargando: ${error.message}</div>`; return; }
-    if (!data.length) { cont.innerHTML = '<div class="empty">Todavía no publicaste nada desde acá.</div>'; return; }
-    cont.innerHTML = data.map(p => `
-      <div class="pendiente-card">
+
+    const activas = data.filter(p => p.status === 'active').length;
+    const pausadas = data.filter(p => p.status === 'paused').length;
+    const vendidasUnidades = data.reduce((a,p) => a + (p.sold_quantity||0), 0);
+    document.getElementById('statsPublicaciones').innerHTML = `
+      <div class="stat"><div class="num">${data.length}</div><div class="lbl">Publicaciones totales</div></div>
+      <div class="stat"><div class="num" style="color:var(--ok)">${activas}</div><div class="lbl">Activas</div></div>
+      <div class="stat"><div class="num" style="color:var(--warn)">${pausadas}</div><div class="lbl">Pausadas</div></div>
+      <div class="stat"><div class="num">${vendidasUnidades}</div><div class="lbl">Unidades vendidas</div></div>
+    `;
+
+    if (!data.length) { cont.innerHTML = '<div class="empty">Todavía no tenés publicaciones. Creá una en "Nueva publicación" o traé las que ya tenías con el botón de arriba.</div>'; return; }
+
+    cont.innerHTML = '';
+    for (const p of data) {
+      const margenInfo = margenDe(p);
+      const div = document.createElement('div');
+      div.className = 'pendiente-card';
+      div.innerHTML = `
         ${p.fotos?.[0] ? `<img class="pendiente-foto" src="${p.fotos[0]}" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
         <div class="pendiente-info">
           <div class="pendiente-titulo">${p.titulo}</div>
-          <div class="pendiente-meta">${fmtMoneda(p.precio)} · Stock: ${p.stock} · <span class="badge ${p.status==='active'?'delivered':'other'}">${p.status}</span></div>
+          <div class="pendiente-meta">
+            <span class="badge ${p.status==='active'?'delivered':'other'}">${p.status}</span> · Vendidas: ${p.sold_quantity||0}
+            ${margenInfo ? `<br/>Margen: <b style="color:${margenInfo.margen>=0?'var(--ok)':'var(--bad)'}">${fmtExacto(margenInfo.margen)} (${margenInfo.pct.toFixed(1)}%)</b> — costo ${fmtExacto(margenInfo.costo)}` : ''}
+          </div>
         </div>
-        ${p.permalink ? `<a class="btn btn-outline" href="${p.permalink}" target="_blank" style="font-size:12px; padding:8px 10px; text-decoration:none;">Ver en ML</a>` : ''}
-      </div>
-    `).join('');
+        <div class="pendiente-acciones">
+          <div style="display:flex; gap:6px;">
+            <input type="number" step="0.01" class="c-edit-precio" value="${p.precio}" style="width:90px; font-size:12px; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);" />
+            <input type="number" class="c-edit-stock" value="${p.stock}" style="width:60px; font-size:12px; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text);" />
+          </div>
+          <button class="btn btn-outline c-guardar-cambios" style="font-size:11px; padding:6px 8px;">Guardar precio/stock</button>
+          <button class="btn btn-outline c-toggle-status" style="font-size:11px; padding:6px 8px;">${p.status==='active' ? 'Pausar' : 'Activar'}</button>
+          ${p.permalink ? `<a class="btn btn-outline" href="${p.permalink}" target="_blank" style="font-size:11px; padding:6px 8px; text-align:center; text-decoration:none;">Ver en ML</a>` : ''}
+        </div>
+      `;
+      div.querySelector('.c-guardar-cambios').onclick = async (e) => {
+        const btn = e.target; btn.textContent = 'Guardando...';
+        const precio = div.querySelector('.c-edit-precio').value;
+        const stock = div.querySelector('.c-edit-stock').value;
+        const resp = await fetch('/api/publicaciones', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: p.item_id, precio, stock }),
+        });
+        const data = await resp.json();
+        btn.textContent = resp.ok ? 'Guardado ✓' : 'Error';
+        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
+        setTimeout(() => renderMisPublicaciones(), 800);
+      };
+      div.querySelector('.c-toggle-status').onclick = async (e) => {
+        const nuevoStatus = p.status === 'active' ? 'paused' : 'active';
+        e.target.textContent = 'Cambiando...';
+        const resp = await fetch('/api/publicaciones', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: p.item_id, status: nuevoStatus }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
+        renderMisPublicaciones();
+      };
+      cont.appendChild(div);
+    }
   }
 
   function init() {
