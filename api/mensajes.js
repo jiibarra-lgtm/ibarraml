@@ -34,6 +34,35 @@ export default async function handler(req, res) {
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
 
+    if (modo === 'enviar') {
+      const { order_id: orderIdEnviar } = req.query;
+      if (!orderIdEnviar) return res.status(400).json({ error: 'Falta order_id' });
+
+      const { data: pedido } = await supabase.from('pedidos')
+        .select('order_id, pack_id, seller_id, vendedor_nickname, titulo, numero_operacion, fecha_creacion')
+        .eq('order_id', orderIdEnviar).single();
+      if (!pedido || !pedido.seller_id) return res.status(400).json({ error: 'No se encontró el vendedor de este pedido' });
+
+      const { data: configRow } = await supabase.from('config').select('plantilla_factura').eq('id', 1).single();
+      const plantilla = configRow?.plantilla_factura || 'Hola! Te escribo por la compra "{titulo}" (pedido #{numero}) del {fecha}.\n\n¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!';
+      const texto = plantilla
+        .replaceAll('{titulo}', pedido.titulo || '')
+        .replaceAll('{numero}', String(pedido.numero_operacion || pedido.order_id))
+        .replaceAll('{fecha}', pedido.fecha_creacion ? new Date(pedido.fecha_creacion).toLocaleDateString('es-AR') : '')
+        .slice(0, 350);
+
+      const packId = pedido.pack_id || pedido.order_id;
+      const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${pedido.seller_id}?tag=post_sale`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: { user_id: String(authRow.user_id) }, to: { user_id: String(pedido.seller_id) }, text: texto }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) return res.status(200).json({ ok: false, funciona: false, order_id: orderIdEnviar, error: data });
+      await supabase.from('pedidos').update({ mensaje_factura_enviado: true }).eq('order_id', orderIdEnviar);
+      return res.status(200).json({ ok: true, funciona: true, order_id: orderIdEnviar });
+    }
+
     if (modo === 'test') {
       const { data: pedido } = await supabase.from('pedidos')
         .select('order_id, pack_id, seller_id, vendedor_nickname, titulo, numero_operacion, fecha_creacion')

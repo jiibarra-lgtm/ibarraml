@@ -296,6 +296,7 @@
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
       <div class="nav-item" data-pagina="sinfactura"><span class="ic"><i class="ti ti-file-alert"></i></span> Facturas pendientes</div>
       <div class="nav-item" data-pagina="imprimirfacturas"><span class="ic"><i class="ti ti-printer"></i></span> Imprimir facturas</div>
+      <div class="nav-item" data-pagina="solicitarfacturas"><span class="ic"><i class="ti ti-mail-forward"></i></span> Solicitar facturas</div>
 
       <div class="nav-section">Organización</div>
       <div class="nav-item" data-pagina="lugares"><span class="ic"><i class="ti ti-building"></i></span> Lugares</div>
@@ -607,6 +608,29 @@
       <div id="listaChecklist"></div>
     </div>
 
+    <!-- SOLICITAR FACTURAS -->
+    <div class="pagina" id="pagina-solicitarfacturas">
+      <div class="panel" style="margin-bottom:14px;">
+        <p style="color:var(--muted); font-size:12.5px;">
+          Acá aparecen tus compras recientes que todavía no tienen factura del vendedor. Elegí a cuáles les querés pedir la factura y mandalo con un solo click — nunca se repite un mensaje ya enviado.
+        </p>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="btn btn-outline" id="btnSeleccionarTodasSolicitar">Seleccionar todas</button>
+          <button class="btn btn-outline" id="btnNingunaSolicitar">Ninguna</button>
+          <button class="btn btn-primary" id="btnEnviarSeleccionadas" style="margin-left:auto;">Enviar a las seleccionadas</button>
+        </div>
+        <div id="estadoSolicitarFacturas" style="font-size:12px; color:var(--teal); margin-top:8px;"></div>
+      </div>
+      <div class="panel">
+        <h3>Candidatas (todavía no enviado)</h3>
+        <div id="listaSolicitarNuevas"></div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>Ya enviadas</h3>
+        <div id="listaSolicitarEnviadas"></div>
+      </div>
+    </div>
+
     <!-- LUGARES -->
     <div class="pagina" id="pagina-lugares">
       <div class="panel">
@@ -851,7 +875,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -863,6 +887,7 @@
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
     if (pag === 'imprimirfacturas') renderImprimirFacturas();
+    if (pag === 'solicitarfacturas') renderSolicitarFacturas();
     if (pag === 'lugares') renderLugares();
     if (pag === 'mensajes') renderMensajes();
     if (pag === 'mispublicaciones') renderMisPublicaciones();
@@ -1458,6 +1483,7 @@
     if (document.getElementById('pagina-historial')?.classList.contains('activa')) renderHistorial();
     if (document.getElementById('pagina-sinfactura')?.classList.contains('activa')) renderSinFactura();
     if (document.getElementById('pagina-imprimirfacturas')?.classList.contains('activa')) renderImprimirFacturas();
+    if (document.getElementById('pagina-solicitarfacturas')?.classList.contains('activa')) renderSolicitarFacturas();
     if (document.getElementById('pagina-checklist')?.classList.contains('activa')) renderChecklist();
   }
 
@@ -2681,6 +2707,70 @@
       cont.appendChild(div);
     }
   }
+
+  /* ---------- SOLICITAR FACTURAS ---------- */
+  function renderSolicitarFacturas() {
+    const candidatas = TODOS.filter(p => !p.factura_ml_id && !p.mensaje_factura_enviado && p.seller_id)
+      .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    const enviadas = TODOS.filter(p => p.mensaje_factura_enviado)
+      .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+
+    const contNuevas = document.getElementById('listaSolicitarNuevas');
+    if (!candidatas.length) {
+      contNuevas.innerHTML = '<div class="empty">No hay compras nuevas esperando factura por ahora.</div>';
+    } else {
+      contNuevas.innerHTML = candidatas.map(p => `
+        <div class="pendiente-card">
+          <input type="checkbox" class="c-check-solicitar" data-order="${p.order_id}" style="width:20px; height:20px; margin-top:20px; flex-shrink:0; accent-color:var(--teal);" />
+          ${fotoDe(p) ? `<img class="pendiente-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="pendiente-foto" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">Sin foto</div>`}
+          <div class="pendiente-info">
+            <div class="pendiente-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
+            <div class="pendiente-meta">${p.vendedor_nickname || ''} · ${fmtMoneda(p.total)} · ${p.fecha_creacion ? new Date(p.fecha_creacion).toLocaleDateString('es-AR') : ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const contEnviadas = document.getElementById('listaSolicitarEnviadas');
+    if (!enviadas.length) {
+      contEnviadas.innerHTML = '<div class="empty">Todavía no le enviaste el pedido de factura a nadie.</div>';
+    } else {
+      contEnviadas.innerHTML = enviadas.slice(0, 30).map(p => `
+        <div class="recientes-item" style="cursor:default;">
+          <span class="recientes-titulo" style="color:var(--text);">${p.titulo || 'Pedido #'+p.order_id}</span>
+          <span class="recientes-meta"><span class="badge delivered">✓ Enviado</span></span>
+        </div>
+      `).join('');
+    }
+  }
+
+  document.getElementById('btnSeleccionarTodasSolicitar').onclick = () => {
+    document.querySelectorAll('.c-check-solicitar').forEach(chk => chk.checked = true);
+  };
+  document.getElementById('btnNingunaSolicitar').onclick = () => {
+    document.querySelectorAll('.c-check-solicitar').forEach(chk => chk.checked = false);
+  };
+
+  document.getElementById('btnEnviarSeleccionadas').onclick = async () => {
+    const estado = document.getElementById('estadoSolicitarFacturas');
+    const seleccionadas = [...document.querySelectorAll('.c-check-solicitar:checked')].map(chk => chk.dataset.order);
+    if (!seleccionadas.length) { estado.textContent = 'No seleccionaste ninguna.'; estado.style.color = 'var(--bad)'; return; }
+    if (!confirm(`¿Mandar el mensaje pidiendo factura a ${seleccionadas.length} vendedor(es)?`)) return;
+
+    estado.style.color = 'var(--teal)';
+    let enviados = 0, fallidos = 0;
+    for (const orderId of seleccionadas) {
+      estado.textContent = `Enviando... (${enviados + fallidos + 1}/${seleccionadas.length})`;
+      try {
+        const resp = await fetch(`/api/mensajes?modo=enviar&order_id=${orderId}`);
+        const data = await resp.json();
+        if (data.funciona) enviados++; else fallidos++;
+      } catch { fallidos++; }
+    }
+    estado.style.color = fallidos ? 'var(--warn)' : 'var(--ok)';
+    estado.textContent = `Listo — ${enviados} enviados${fallidos ? `, ${fallidos} fallaron` : ''}.`;
+    cargarPedidos();
+  };
 
   function init() {
     cargarConfig();

@@ -267,20 +267,8 @@ export default async function handler(req, res) {
         payload.factura_ml_fecha = facturaVendedor.fecha;
       }
 
-      // Mensaje automático pidiendo la factura: SOLO para pedidos genuinamente nuevos
-      // y de los últimos 2 días (evita mandarle mensajes en masa a vendedores de
-      // compras viejas la primera vez que se sincroniza todo el historial).
-      const esReciente = order.date_created && (Date.now() - new Date(order.date_created).getTime()) < 2 * 24 * 60 * 60 * 1000;
-      if (esNuevo && esReciente && !facturaVendedor && order.seller?.id) {
-        const texto = armarTextoFactura(plantillaFactura, {
-          titulo: primerItem?.title,
-          numero: order.pack_id || order.id,
-          fecha: new Date(order.date_created).toLocaleDateString('es-AR'),
-          vendedor: order.seller?.nickname,
-        });
-        const enviado = await enviarMensajeAutomatico(accessToken, authRow.user_id, order.pack_id || order.id, order.seller.id, texto);
-        if (enviado) payload.mensaje_factura_enviado = true;
-      }
+      // El envío automático silencioso se sacó — ahora se manda desde la
+      // sección "Solicitar facturas", donde elegís vos cuáles mandar.
 
       const { error: upsertErr } = await supabase.from('pedidos').upsert(payload, { onConflict: 'order_id' });
 
