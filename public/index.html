@@ -614,6 +614,10 @@
         <p style="color:var(--muted); font-size:12.5px;">
           Acá aparecen tus compras recientes que todavía no tienen factura del vendedor. Elegí a cuáles les querés pedir la factura y mandalo con un solo click — nunca se repite un mensaje ya enviado.
         </p>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:10px; padding:10px; background:var(--bg); border-radius:8px;">
+          <input type="checkbox" id="chkAutoSolicitar" style="width:20px; height:20px; accent-color:var(--teal);" />
+          <label for="chkAutoSolicitar" style="font-size:13px; font-weight:600; cursor:pointer;">Modo automático: pedir la factura sola apenas detecta una compra nueva (sin que tengas que entrar acá)</label>
+        </div>
         <div style="display:flex; gap:8px; margin-top:10px;">
           <button class="btn btn-outline" id="btnSeleccionarTodasSolicitar">Seleccionar todas</button>
           <button class="btn btn-outline" id="btnNingunaSolicitar">Ninguna</button>
@@ -628,6 +632,13 @@
       <div class="panel" style="margin-top:14px;">
         <h3>Ya enviadas</h3>
         <div id="listaSolicitarEnviadas"></div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <h3>👀 Te dejaron en visto</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Vendedores que leyeron tu pedido de factura pero todavía no te contestaron nada.</p>
+        <button class="btn btn-outline" id="btnRevisarVistos">Revisar vistos</button>
+        <div id="estadoVistos" style="font-size:12px; color:var(--teal); margin-top:8px;"></div>
+        <div id="listaVistos" style="margin-top:10px;"></div>
       </div>
     </div>
 
@@ -1463,13 +1474,25 @@
     document.getElementById('cfgPlantillaFactura').value = PLANTILLA_FACTURA_DEFAULT;
   };
 
+  const COLUMNAS_PEDIDOS = `order_id, pack_id, numero_operacion, seller_id, titulo, variante, sku, link_publicacion,
+    cantidad_items, cantidad_unidades, precio_unitario, total, moneda, cuotas, fecha_pago, vendedor_nickname,
+    status_orden, status_envio, substatus_envio, tipo_envio, logistic_type, destino_tipo, destino_direccion,
+    destino_calle, destino_ciudad, destino_provincia, destino_lat, destino_lon, origen_provincia, costo_envio,
+    fecha_estimada, fecha_estimada_cambio, tracking_number, categoria_id, categoria_nombre, metodo_pago,
+    imagen_url, imagen_manual_url, fecha_creacion, fecha_despachado, fecha_entrega, entregado_confirmado,
+    ultima_sync, updated_at, descuento_monto, cupon_monto, impuestos_monto, factura_ml_id, factura_ml_filename,
+    factura_ml_fecha, precio_compra, precio_venta, rubro, producto_generico, comentarios, cargado_en_cotizador,
+    moneda_original, tipo_cambio, iva_monto, factura_adjunta, factura_url, notas, verificado_por_mi,
+    reclamo_abierto, reclamo_fecha_limite, reclamo_resultado, reclamo_notas, mensaje_factura_enviado,
+    lugar_id, destinatario_interno, notas_entrega, manual_historico, factura_impresa`;
+
   async function cargarPedidos() {
     let todosLosPedidos = [];
     let desde = 0;
     const bloque = 1000; // Supabase devuelve máximo 1000 filas por consulta si no se pagina
     while (true) {
       const { data, error } = await db.from('pedidos')
-        .select('*')
+        .select(COLUMNAS_PEDIDOS)
         .order('fecha_creacion', { ascending: false })
         .range(desde, desde + bloque - 1);
       if (error) { estadoEl.textContent = 'Error cargando pedidos: ' + error.message; return; }
@@ -2710,6 +2733,7 @@
 
   /* ---------- SOLICITAR FACTURAS ---------- */
   function renderSolicitarFacturas() {
+    document.getElementById('chkAutoSolicitar').checked = CONFIG.auto_solicitar_factura !== false;
     const candidatas = TODOS.filter(p => !p.factura_ml_id && !p.mensaje_factura_enviado && p.seller_id)
       .sort((a,b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
     const enviadas = TODOS.filter(p => p.mensaje_factura_enviado)
@@ -2772,12 +2796,49 @@
     cargarPedidos();
   };
 
+  document.getElementById('chkAutoSolicitar').onchange = async (e) => {
+    await db.from('config').update({ auto_solicitar_factura: e.target.checked }).eq('id', 1);
+    CONFIG.auto_solicitar_factura = e.target.checked;
+  };
+
+  document.getElementById('btnRevisarVistos').onclick = async () => {
+    const estado = document.getElementById('estadoVistos');
+    const cont = document.getElementById('listaVistos');
+    estado.textContent = 'Revisando conversaciones (puede tardar un poco)...';
+    cont.innerHTML = '';
+    let offset = 0;
+    const limit = 20;
+    let total = Infinity;
+    let todosLosVistos = [];
+
+    while (offset < total) {
+      try {
+        const resp = await fetch(`/api/mensajes?modo=vistos&offset=${offset}&limit=${limit}`);
+        const data = await resp.json();
+        if (!resp.ok) { estado.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
+        total = data.total;
+        todosLosVistos = todosLosVistos.concat(data.vistos);
+        estado.textContent = `Revisando... ${Math.min(offset+limit, total)} / ${total}`;
+        if (data.done) break;
+        offset = data.next_offset;
+      } catch (e) { estado.textContent = 'Error de red: ' + e.message; break; }
+    }
+
+    estado.textContent = `Listo — ${todosLosVistos.length} vendedor(es) te dejaron en visto.`;
+    cont.innerHTML = todosLosVistos.length ? todosLosVistos.map(v => `
+      <div class="recientes-item" style="cursor:default;">
+        <span class="recientes-titulo" style="color:var(--text);">${v.titulo || 'Pedido #'+v.order_id} — ${v.vendedor||''}</span>
+        <span class="recientes-meta" style="font-size:11px; color:var(--muted);">Visto el ${new Date(v.fecha_leido).toLocaleDateString('es-AR')}</span>
+      </div>
+    `).join('') : '<div class="empty">Nadie te dejó en visto — o todos ya te contestaron. 👍</div>';
+  };
+
   function init() {
     cargarConfig();
     cargarLugares();
     cargarPedidos();
     sincronizarCompleto(); // primera vez: trae todo con fotos
-    setInterval(() => sincronizarLiviano(), 120000); // cada 2 minutos, para no chocar con el límite de consultas de ML
+    setInterval(() => sincronizarLiviano(), 300000); // cada 5 minutos, para cuidar la cuota de datos de Supabase
   }
 </script>
 </body>
