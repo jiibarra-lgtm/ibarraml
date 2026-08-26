@@ -1,5 +1,5 @@
-// GET /api/mensajes?order_id=...
-// Trae el historial de mensajes posventa reales de ese pedido (solo lectura).
+// GET /api/mensajes?order_id=X          -> trae la conversación de ese pedido
+// GET /api/mensajes?modo=test            -> prueba el mensaje automático
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -26,33 +26,56 @@ async function refreshTokenIfNeeded(supabase, auth) {
 }
 
 export default async function handler(req, res) {
-  const { order_id } = req.query;
-  if (!order_id) return res.status(400).json({ error: 'Falta order_id' });
-
+  const { order_id, modo } = req.query;
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const { data: authRow } = await supabase.from('ml_auth').select('*').order('updated_at', { ascending: false }).limit(1).single();
   if (!authRow) return res.status(400).json({ error: 'No hay cuenta de ML conectada' });
 
-  const { data: pedido } = await supabase.from('pedidos').select('pack_id, order_id, seller_id, vendedor_nickname').eq('order_id', order_id).single();
-  if (!pedido || !pedido.seller_id) return res.status(400).json({ error: 'No se encontró el vendedor de este pedido' });
-
-  const packId = pedido.pack_id || pedido.order_id;
-
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
+
+    if (modo === 'test') {
+      const { data: pedido } = await supabase.from('pedidos')
+        .select('order_id, pack_id, seller_id, vendedor_nickname, titulo, numero_operacion, fecha_creacion')
+        .is('factura_ml_id', null).not('seller_id', 'is', null)
+        .order('fecha_creacion', { ascending: false }).limit(1).single();
+      if (!pedido) return res.status(400).json({ error: 'No encontré ningún pedido sin factura para probar. Sincronizá primero.' });
+
+      const { data: configRow } = await supabase.from('config').select('plantilla_factura').eq('id', 1).single();
+      const plantilla = configRow?.plantilla_factura || 'Hola! Te escribo por la compra "{titulo}" (pedido #{numero}) del {fecha}.\n\n¿Me podrías enviar la factura correspondiente a esta compra? La necesito para mi contabilidad. ¡Gracias!';
+      const texto = plantilla
+        .replaceAll('{titulo}', pedido.titulo || '')
+        .replaceAll('{numero}', String(pedido.numero_operacion || pedido.order_id))
+        .replaceAll('{fecha}', pedido.fecha_creacion ? new Date(pedido.fecha_creacion).toLocaleDateString('es-AR') : '')
+        .slice(0, 350);
+
+      const packId = pedido.pack_id || pedido.order_id;
+      const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${pedido.seller_id}?tag=post_sale`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: { user_id: String(authRow.user_id) }, to: { user_id: String(pedido.seller_id) }, text: texto }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) return res.status(200).json({ ok: false, funciona: false, pedido: pedido.titulo, error: data });
+      await supabase.from('pedidos').update({ mensaje_factura_enviado: true }).eq('order_id', pedido.order_id);
+      return res.status(200).json({ ok: true, funciona: true, pedido: pedido.titulo, vendedor: pedido.vendedor_nickname, texto });
+    }
+
+    // Modo por default: traer la conversación real de un pedido
+    if (!order_id) return res.status(400).json({ error: 'Falta order_id' });
+    const { data: pedido } = await supabase.from('pedidos').select('pack_id, order_id, seller_id, vendedor_nickname').eq('order_id', order_id).single();
+    if (!pedido || !pedido.seller_id) return res.status(400).json({ error: 'No se encontró el vendedor de este pedido' });
+
+    const packId = pedido.pack_id || pedido.order_id;
     const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${pedido.seller_id}?tag=post_sale&mark_as_read=false`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const data = await resp.json();
-    if (!resp.ok) {
-      return res.status(resp.status).json({ error: 'No se pudieron traer los mensajes', detail: data });
-    }
+    if (!resp.ok) return res.status(resp.status).json({ error: 'No se pudieron traer los mensajes', detail: data });
+
     res.status(200).json({
-      ok: true,
-      vendedor: pedido.vendedor_nickname,
-      mi_user_id: String(authRow.user_id),
-      conversation_status: data.conversation_status,
-      messages: data.messages || [],
+      ok: true, vendedor: pedido.vendedor_nickname, mi_user_id: String(authRow.user_id),
+      conversation_status: data.conversation_status, messages: data.messages || [],
     });
   } catch (err) {
     res.status(500).json({ error: 'Error inesperado', detail: String(err) });
