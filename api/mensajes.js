@@ -63,6 +63,83 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, funciona: true, order_id: orderIdEnviar });
     }
 
+    if (modo === 'sinchat') {
+      const offset = Number(req.query?.offset) || 0;
+      const limit = Math.min(Number(req.query?.limit) || 20, 30);
+
+      const { data: pendientes, count } = await supabase.from('pedidos')
+        .select('order_id, pack_id, seller_id, vendedor_nickname, titulo, total, fecha_creacion', { count: 'exact' })
+        .is('factura_ml_id', null)
+        .not('seller_id', 'is', null)
+        .order('fecha_creacion', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      const sinChat = [];
+      for (const p of pendientes || []) {
+        const packId = p.pack_id || p.order_id;
+        try {
+          const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${p.seller_id}?tag=post_sale&mark_as_read=false&limit=1`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          if (!(data.messages || []).length) {
+            sinChat.push({ order_id: p.order_id, titulo: p.titulo, vendedor: p.vendedor_nickname, total: p.total, fecha: p.fecha_creacion });
+          }
+        } catch { /* seguimos con el siguiente */ }
+      }
+
+      const total = count || 0;
+      const done = offset + limit >= total;
+      return res.status(200).json({ ok: true, sinChat, total, next_offset: offset + limit, done });
+    }
+
+    if (modo === 'vistos') {
+      const offset = Number(req.query?.offset) || 0;
+      const limit = Math.min(Number(req.query?.limit) || 20, 30);
+
+      const { data: pendientes, count } = await supabase.from('pedidos')
+        .select('order_id, pack_id, seller_id, vendedor_nickname, titulo', { count: 'exact' })
+        .eq('mensaje_factura_enviado', true)
+        .not('seller_id', 'is', null)
+        .order('fecha_creacion', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      const vistos = [];
+      for (const p of pendientes || []) {
+        const packId = p.pack_id || p.order_id;
+        try {
+          const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${p.seller_id}?tag=post_sale&mark_as_read=false&limit=50`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          const mensajes = data.messages || [];
+          if (!mensajes.length) continue;
+
+          // Buscamos nuestro último mensaje enviado (from = nosotros)
+          const misMensajes = mensajes.filter(m => String(m.from?.user_id) === String(authRow.user_id));
+          if (!misMensajes.length) continue;
+          const ultimoMio = misMensajes[misMensajes.length - 1];
+          const fueLeido = !!ultimoMio.message_date?.read;
+          if (!fueLeido) continue; // todavía ni lo vio
+
+          // ¿Respondió el vendedor DESPUÉS de leerlo?
+          const respondioDespues = mensajes.some(m =>
+            String(m.from?.user_id) === String(p.seller_id) &&
+            new Date(m.message_date?.received || 0) > new Date(ultimoMio.message_date.read)
+          );
+          if (!respondioDespues) {
+            vistos.push({ order_id: p.order_id, titulo: p.titulo, vendedor: p.vendedor_nickname, fecha_leido: ultimoMio.message_date.read });
+          }
+        } catch { /* seguimos con el siguiente */ }
+      }
+
+      const total = count || 0;
+      const done = offset + limit >= total;
+      return res.status(200).json({ ok: true, vistos, total, next_offset: offset + limit, done });
+    }
+
     if (modo === 'test') {
       const { data: pedido } = await supabase.from('pedidos')
         .select('order_id, pack_id, seller_id, vendedor_nickname, titulo, numero_operacion, fecha_creacion')
@@ -96,7 +173,7 @@ export default async function handler(req, res) {
     if (!pedido || !pedido.seller_id) return res.status(400).json({ error: 'No se encontró el vendedor de este pedido' });
 
     const packId = pedido.pack_id || pedido.order_id;
-    const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${pedido.seller_id}?tag=post_sale&mark_as_read=false`, {
+    const resp = await fetch(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${pedido.seller_id}?tag=post_sale&mark_as_read=false&limit=50`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const data = await resp.json();

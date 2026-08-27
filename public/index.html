@@ -630,6 +630,13 @@
         <div id="listaSolicitarNuevas"></div>
       </div>
       <div class="panel" style="margin-top:14px;">
+        <h3>💬 Sin ningún chat iniciado</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Compras sin factura donde nunca se mandó ningún mensaje al vendedor — ideal para revisar manualmente antes de mandarles el pedido de factura.</p>
+        <button class="btn btn-outline" id="btnRevisarSinChat">Revisar</button>
+        <div id="estadoSinChat" style="font-size:12px; color:var(--teal); margin-top:8px;"></div>
+        <div id="listaSinChat" style="margin-top:10px;"></div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
         <h3>👀 Te dejaron en visto</h3>
         <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Vendedores que leyeron tu pedido de factura pero todavía no te contestaron nada.</p>
         <button class="btn btn-outline" id="btnRevisarVistos">Revisar vistos</button>
@@ -1513,10 +1520,9 @@
     const codigoLimpio = extraerIdDeCodigo(codigo);
     return TODOS.find(p => {
       const candidatos = [
-        p.tracking_number,
+        p.tracking_number, // incluye el ID del envío como respaldo para pedidos Flex (ver sync.js)
         p.pack_id,
         p.order_id,
-        p.raw_shipping?.id, // el ID del envío, que a veces es lo que imprime el código de barras
       ].filter(Boolean).map(String);
       return candidatos.includes(codigoLimpio);
     });
@@ -2783,6 +2789,61 @@
   document.getElementById('chkAutoSolicitar').onchange = async (e) => {
     await db.from('config').update({ auto_solicitar_factura: e.target.checked }).eq('id', 1);
     CONFIG.auto_solicitar_factura = e.target.checked;
+  };
+
+  document.getElementById('btnRevisarSinChat').onclick = async () => {
+    const estado = document.getElementById('estadoSinChat');
+    const cont = document.getElementById('listaSinChat');
+    estado.textContent = 'Revisando conversaciones (puede tardar un poco)...';
+    cont.innerHTML = '';
+    let offset = 0;
+    const limit = 20;
+    let total = Infinity;
+    let todosSinChat = [];
+
+    while (offset < total) {
+      try {
+        const resp = await fetch(`/api/mensajes?modo=sinchat&offset=${offset}&limit=${limit}`);
+        const data = await resp.json();
+        if (!resp.ok) { estado.textContent = 'Error: ' + (data.error || 'desconocido'); break; }
+        total = data.total;
+        todosSinChat = todosSinChat.concat(data.sinChat);
+        estado.textContent = `Revisando... ${Math.min(offset+limit, total)} / ${total}`;
+        if (data.done) break;
+        offset = data.next_offset;
+      } catch (e) { estado.textContent = 'Error de red: ' + e.message; break; }
+    }
+
+    estado.textContent = `Listo — ${todosSinChat.length} compra(s) sin ningún chat iniciado.`;
+    cont.innerHTML = todosSinChat.length ? todosSinChat.map(p => `
+      <div class="pendiente-card">
+        <input type="checkbox" class="c-check-sinchat" data-order="${p.order_id}" style="width:20px; height:20px; margin-top:20px; flex-shrink:0; accent-color:var(--teal);" />
+        <div class="pendiente-info">
+          <div class="pendiente-titulo">${p.titulo || 'Pedido #'+p.order_id}</div>
+          <div class="pendiente-meta">${p.vendedor || ''} · ${fmtMoneda(p.total)} · ${p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR') : ''}</div>
+        </div>
+      </div>
+    `).join('') + `<button class="btn btn-primary" id="btnEnviarSinChat" style="margin-top:10px;">Mandarles el pedido de factura</button>` : '<div class="empty">Todas tus compras sin factura ya tienen un chat iniciado. 👍</div>';
+
+    const btnEnviar = document.getElementById('btnEnviarSinChat');
+    if (btnEnviar) {
+      btnEnviar.onclick = async () => {
+        const seleccionadas = [...document.querySelectorAll('.c-check-sinchat:checked')].map(c => c.dataset.order);
+        if (!seleccionadas.length) { alert('Seleccioná al menos una.'); return; }
+        estado.textContent = 'Enviando...';
+        let enviados = 0;
+        for (const orderId of seleccionadas) {
+          try {
+            const r = await fetch(`/api/mensajes?modo=enviar&order_id=${orderId}`);
+            const d = await r.json();
+            if (d.funciona) enviados++;
+          } catch {}
+        }
+        estado.textContent = `Listo — ${enviados} enviados.`;
+        cargarPedidos();
+        document.getElementById('btnRevisarSinChat').click();
+      };
+    }
   };
 
   document.getElementById('btnRevisarVistos').onclick = async () => {

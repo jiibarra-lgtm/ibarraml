@@ -1,20 +1,11 @@
-// GET /api/sync?offset=0&limit=40&from=2026-08-01T00:00:00.000-00:00&to=2026-09-01T00:00:00.000-00:00
-//
-// Trae pedidos DE UN RANGO DE FECHAS puntual (normalmente un mes), de a
-// lotes. Buscar por rango en vez de pedirle "todo" a ML de una evita
-// cualquier límite interno que tenga /orders/search sobre el total de
-// resultados de una sola búsqueda — partiendo por mes, cada búsqueda
-// individual es chica.
-//
-// Si no se manda from/to, busca sin filtro de fecha (comportamiento viejo,
-// se usa para el chequeo liviano de "lo más reciente").
+// GET /api/sync?offset=0&limit=40&from=...&to=...
+// Trae pedidos de un rango de fechas puntual, de a lotes.
 
 import { createClient } from '@supabase/supabase-js';
 
 async function refreshTokenIfNeeded(supabase, auth) {
   const expiresAt = new Date(auth.expires_at).getTime();
   if (Date.now() < expiresAt - 60_000) return auth.access_token;
-
   const resp = await fetch('https://api.mercadolibre.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -27,14 +18,10 @@ async function refreshTokenIfNeeded(supabase, auth) {
   });
   const data = await resp.json();
   if (!resp.ok) throw new Error('No se pudo refrescar el token: ' + JSON.stringify(data));
-
   await supabase.from('ml_auth').update({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-    updated_at: new Date().toISOString(),
+    access_token: data.access_token, refresh_token: data.refresh_token,
+    expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(), updated_at: new Date().toISOString(),
   }).eq('user_id', auth.user_id);
-
   return data.access_token;
 }
 
@@ -51,15 +38,12 @@ async function getCategoriaNombre(categoryId, accessToken) {
 async function getInfoProducto(itemId, accessToken) {
   if (!itemId) return { foto: null, sku: null, link: null };
   try {
-    // Intento 1: pedido liviano, solo los campos que necesitamos
     const resp = await fetch(`https://api.mercadolibre.com/items/${itemId}?attributes=thumbnail,secure_thumbnail,seller_custom_field,permalink,pictures`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (resp.ok) {
       const data = await resp.json();
       const foto = data.secure_thumbnail || data.thumbnail || data.pictures?.[0]?.secure_url || data.pictures?.[0]?.url || null;
       if (foto) return { foto, sku: data.seller_custom_field || null, link: data.permalink || null };
     }
-    // Intento 2 (respaldo): pedido del ítem completo, por si la publicación está pausada/cerrada
-    // y el filtro de atributos liviano no devuelve nada
     const resp2 = await fetch(`https://api.mercadolibre.com/items/${itemId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!resp2.ok) return { foto: null, sku: null, link: null };
     const data2 = await resp2.json();
@@ -105,7 +89,7 @@ function armarTextoFactura(plantilla, datos) {
     .replaceAll('{numero}', String(datos.numero || ''))
     .replaceAll('{fecha}', datos.fecha || '')
     .replaceAll('{vendedor}', datos.vendedor || '')
-    .slice(0, 350); // límite real de ML por mensaje
+    .slice(0, 350);
 }
 
 async function enviarMensajeAutomatico(accessToken, buyerUserId, packId, sellerId, texto) {
@@ -140,9 +124,9 @@ export default async function handler(req, res) {
   try {
     const accessToken = await refreshTokenIfNeeded(supabase, authRow);
 
-    // Traemos la plantilla configurada (si el usuario la personalizó) para el mensaje automático
-    const { data: configRow } = await supabase.from('config').select('plantilla_factura').eq('id', 1).single();
+    const { data: configRow } = await supabase.from('config').select('plantilla_factura, auto_solicitar_factura').eq('id', 1).single();
     const plantillaFactura = configRow?.plantilla_factura || PLANTILLA_FACTURA_DEFAULT;
+    const autoSolicitar = configRow?.auto_solicitar_factura !== false; // por default, activado
 
     let url = `https://api.mercadolibre.com/orders/search?buyer=${authRow.user_id}&sort=date_desc&offset=${offset}&limit=${limit}`;
     if (from) url += `&order.date_created.from=${encodeURIComponent(from)}`;
@@ -150,7 +134,6 @@ export default async function handler(req, res) {
 
     let ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (ordersResp.status === 429) {
-      // ML nos frenó por exceso de consultas: esperamos un momento y reintentamos una vez
       await new Promise(r => setTimeout(r, 3000));
       ordersResp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     }
@@ -164,7 +147,7 @@ export default async function handler(req, res) {
       procesados++;
 
       const { data: existente } = await supabase.from('pedidos')
-        .select('status_envio, imagen_url, categoria_nombre, sku, link_publicacion, factura_ml_id, fecha_estimada')
+        .select('status_envio, imagen_url, categoria_nombre, sku, link_publicacion, factura_ml_id, fecha_estimada, mensaje_factura_enviado')
         .eq('order_id', order.id).single();
       const esNuevo = !existente;
 
@@ -245,7 +228,7 @@ export default async function handler(req, res) {
         costo_envio: costoEnvio,
         fecha_estimada: fechaEstimadaNueva,
         fecha_estimada_cambio: fechaEstimadaCambio,
-        tracking_number: shipInfo?.tracking_number || null,
+        tracking_number: shipInfo?.tracking_number || shipInfo?.id || null,
         categoria_id: primerItem?.category_id || null,
         categoria_nombre: categoriaNombre,
         metodo_pago: metodoPago,
@@ -267,8 +250,24 @@ export default async function handler(req, res) {
         payload.factura_ml_fecha = facturaVendedor.fecha;
       }
 
-      // El envío automático silencioso se sacó — ahora se manda desde la
-      // sección "Solicitar facturas", donde elegís vos cuáles mandar.
+      // Solicitud automática de factura: solo si el interruptor está activado,
+      // el pedido es de los últimos 2 días, el vendedor todavía no subió la
+      // factura, Y todavía no le mandamos el mensaje antes (reintenta si el
+      // primer intento falló o si prendiste el interruptor después).
+      if (autoSolicitar) {
+        const esReciente = order.date_created && (Date.now() - new Date(order.date_created).getTime()) < 2 * 24 * 60 * 60 * 1000;
+        const yaEnviado = existente?.mensaje_factura_enviado === true;
+        if (esReciente && !facturaVendedor && !yaEnviado && order.seller?.id) {
+          const texto = armarTextoFactura(plantillaFactura, {
+            titulo: primerItem?.title,
+            numero: order.pack_id || order.id,
+            fecha: new Date(order.date_created).toLocaleDateString('es-AR'),
+            vendedor: order.seller?.nickname,
+          });
+          const enviado = await enviarMensajeAutomatico(accessToken, authRow.user_id, order.pack_id || order.id, order.seller.id, texto);
+          if (enviado) payload.mensaje_factura_enviado = true;
+        }
+      }
 
       const { error: upsertErr } = await supabase.from('pedidos').upsert(payload, { onConflict: 'order_id' });
 
