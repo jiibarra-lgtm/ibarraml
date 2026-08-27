@@ -291,6 +291,7 @@
       <div class="nav-section">Reportes</div>
       <div class="nav-item" data-pagina="graficos"><span class="ic"><i class="ti ti-chart-pie"></i></span> Gráficos</div>
       <div class="nav-item" data-pagina="productos"><span class="ic"><i class="ti ti-package"></i></span> Top productos</div>
+      <div class="nav-item" data-pagina="palabrasclave"><span class="ic"><i class="ti ti-tags"></i></span> Palabras clave</div>
       <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
@@ -546,6 +547,22 @@
     <!-- TOP PRODUCTOS -->
     <div class="pagina" id="pagina-productos">
       <div class="panel"><h3>Top 10 productos (por nombre general)</h3><table class="reporte" id="tablaTop"></table></div>
+    </div>
+
+    <!-- PALABRAS CLAVE -->
+    <div class="pagina" id="pagina-palabrasclave">
+      <div class="stats" id="statsPalabrasClave"></div>
+      <div class="filtros">
+        <input type="text" id="buscarPalabraClave" placeholder="Buscar una palabra puntual..." style="flex:1; min-width:200px;" />
+      </div>
+      <div class="panel">
+        <h3>Palabras más frecuentes en tus compras</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Sacado automático de los títulos de todas tus compras — no hace falta que cargues nada a mano.</p>
+        <div class="panel-chart" style="height:260px;"><canvas id="chartPalabrasClave"></canvas></div>
+      </div>
+      <div class="panel" style="margin-top:14px;">
+        <table class="reporte" id="tablaPalabrasClave"></table>
+      </div>
     </div>
 
     <!-- METODO DE PAGO -->
@@ -889,7 +906,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', palabrasclave:'Palabras clave', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -897,6 +914,7 @@
     document.getElementById('pagina-' + pag).classList.add('activa');
     document.getElementById('tituloPagina').textContent = nombresPagina[pag];
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
+    if (pag === 'palabrasclave') renderPalabrasClave();
     if (pag === 'inicio') renderInicio();
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
@@ -2877,6 +2895,65 @@
       </div>
     `).join('') : '<div class="empty">Nadie te dejó en visto — o todos ya te contestaron. 👍</div>';
   };
+
+  /* ---------- PALABRAS CLAVE ---------- */
+  const STOPWORDS_ES = new Set([
+    'de','del','la','el','los','las','un','una','unos','unas','y','o','para','por','con','sin',
+    'en','a','al','x','cm','mm','kg','gr','ml','lt','pcs','pack','packs','unidades','unidad',
+    'nuevo','nueva','color','colores','modelo','set','kit','tipo','marca','original','oferta',
+    'envio','envios','gratis','importado','importada','profesional','universal','varios',
+    'cms','mts','mt','mtx','xl','xxl','xs','pza','pzas', 'u', 'c'
+  ]);
+  let chartPalabras;
+
+  function extraerPalabras(titulo) {
+    return (titulo || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sacar acentos
+      .replace(/[^a-z0-9ñ\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !STOPWORDS_ES.has(w) && isNaN(w));
+  }
+
+  function renderPalabrasClave() {
+    const busqueda = document.getElementById('buscarPalabraClave').value.toLowerCase().trim();
+    const conteo = {};
+
+    TODOS.forEach(p => {
+      const palabras = new Set(extraerPalabras(p.titulo)); // Set: contamos 1 vez por pedido, no por repetición dentro del mismo título
+      palabras.forEach(palabra => {
+        if (!conteo[palabra]) conteo[palabra] = { cantidad: 0, gasto: 0 };
+        conteo[palabra].cantidad++;
+        conteo[palabra].gasto += montoReal(p) || 0;
+      });
+    });
+
+    let listado = Object.keys(conteo).map(palabra => ({ palabra, ...conteo[palabra] }));
+    if (busqueda) listado = listado.filter(l => l.palabra.includes(busqueda));
+    listado.sort((a,b) => b.cantidad - a.cantidad);
+
+    document.getElementById('statsPalabrasClave').innerHTML = `
+      <div class="stat"><div class="num">${listado.length}</div><div class="lbl">Palabras distintas detectadas</div></div>
+      <div class="stat"><div class="num">${listado[0]?.palabra || '-'}</div><div class="lbl">Palabra más frecuente</div></div>
+      <div class="stat"><div class="num">${listado[0]?.cantidad || 0}</div><div class="lbl">Veces que aparece</div></div>
+    `;
+
+    const top20 = listado.slice(0, 20);
+    if (chartPalabras) chartPalabras.destroy();
+    chartPalabras = new Chart(document.getElementById('chartPalabrasClave'), {
+      type: 'bar',
+      data: { labels: top20.map(l => l.palabra), datasets: [{ data: top20.map(l => l.cantidad), backgroundColor: '#4f46e5', borderRadius: 4 }] },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } },
+      },
+    });
+
+    document.getElementById('tablaPalabrasClave').innerHTML = `<tr><th>Palabra</th><th>Compras donde aparece</th><th>Gasto asociado</th></tr>` +
+      listado.slice(0, 60).map(l => `<tr><td>${l.palabra}</td><td>${l.cantidad}</td><td>${fmtMoneda(l.gasto)}</td></tr>`).join('');
+  }
+  document.getElementById('buscarPalabraClave').oninput = renderPalabrasClave;
 
   function init() {
     cargarConfig();
