@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pedidos ---{} Ibarra</title>
+<title>Pedidos — Ibarra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -220,46 +220,6 @@
   .reclamo-plazo.ok{background:rgba(217,119,6,.12); color:var(--warn);}
 
   .solo-mobile{display:none;}
-
-  .scan-modal-backdrop{
-    display:none; position:fixed; inset:0; background:rgba(15,17,23,.55); backdrop-filter:blur(4px);
-    z-index:200; align-items:flex-end; justify-content:center;
-  }
-  .scan-modal-backdrop.abierto{display:flex; animation:fadeIn .15s ease;}
-  .scan-modal{
-    background:var(--card); width:100%; max-width:460px; border-radius:20px 20px 0 0;
-    box-shadow:0 -8px 40px rgba(0,0,0,.35); animation:slideUp .22s cubic-bezier(.16,1,.3,1);
-    max-height:85vh; display:flex; flex-direction:column; overflow:hidden;
-  }
-  @media(min-width:520px){
-    .scan-modal-backdrop{align-items:center;}
-    .scan-modal{border-radius:20px; margin-bottom:0;}
-  }
-  @keyframes slideUp{from{transform:translateY(40px); opacity:0;} to{transform:translateY(0); opacity:1;}}
-  @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
-  .scan-modal-header{
-    display:flex; justify-content:space-between; align-items:center; padding:16px 18px;
-    border-bottom:1px solid var(--border); font-weight:700; font-size:14px;
-  }
-  .scan-modal-cerrar{background:var(--bg); border:none; width:30px; height:30px; border-radius:50%; color:var(--muted); font-size:14px; cursor:pointer;}
-  .scan-modal-cerrar:hover{background:var(--indigo-l); color:var(--indigo);}
-  .scan-modal-contenido{padding:18px; overflow-y:auto;}
-
-  .scan-item-card{display:flex; gap:12px; align-items:center; padding:10px; background:var(--bg); border-radius:12px; margin-bottom:8px;}
-  .scan-item-foto{width:52px; height:52px; border-radius:10px; object-fit:cover; flex-shrink:0; border:1px solid var(--border); background:var(--card);}
-  .scan-item-info{flex:1; min-width:0;}
-  .scan-item-titulo{font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .scan-item-meta{font-size:11.5px; color:var(--muted); margin-top:2px;}
-  .scan-multi-badge{display:inline-flex; align-items:center; gap:6px; background:var(--indigo-l); color:var(--indigo); font-size:12px; font-weight:700; padding:6px 12px; border-radius:20px; margin-bottom:12px;}
-  .scan-check-ok{color:var(--ok); font-size:18px;}
-  .scan-btn-confirmar{width:100%; background:linear-gradient(135deg,var(--indigo),#6d5ff5); color:#fff; padding:14px; border-radius:14px; font-size:14.5px; font-weight:700; border:none; box-shadow:0 4px 14px rgba(79,70,229,.35); margin-top:6px;}
-  .scan-btn-confirmar:active{transform:scale(.98);}
-  .scan-exito{text-align:center; padding:8px 0; color:var(--ok); font-weight:600; font-size:13.5px;}
-  .scan-lugar-box{margin-top:16px; padding-top:16px; border-top:1px dashed var(--border);}
-  .scan-lugar-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-bottom:8px;}
-  .scan-lugar-actual{background:rgba(79,70,229,.08); border-radius:12px; padding:12px 14px; font-size:13px;}
-  .scan-not-found{text-align:center; padding:20px 0;}
-  .scan-not-found-icon{font-size:38px; margin-bottom:10px;}
   .historial-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;}
   .historial-card .foto-prod{width:46px; height:46px; flex-shrink:0;}
   .historial-card .info{flex:1; min-width:0;}
@@ -300,104 +260,9 @@
   .acceso-icon{width:38px; height:38px; border-radius:9px; background:var(--indigo-l); color:var(--indigo); display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px;}
   .acceso-nombre{font-size:13.5px; font-weight:600; margin-bottom:3px;}
   .acceso-desc{font-size:11.5px; color:var(--muted); line-height:1.4;}
-  /* ==================== ANIMACIONES Y ESTÉTICA ==================== */
-
-  /* --- Toasts --- */
-  #toastContainer{position:fixed; bottom:20px; right:20px; z-index:500; display:flex; flex-direction:column; gap:10px; max-width:340px;}
-  @media(max-width:600px){ #toastContainer{left:16px; right:16px; bottom:16px; max-width:none; align-items:stretch;} }
-  .toast{
-    background:var(--card); border:1px solid var(--border); border-left:4px solid var(--indigo);
-    border-radius:12px; padding:13px 16px; box-shadow:0 8px 28px rgba(0,0,0,.16);
-    font-size:13px; display:flex; align-items:flex-start; gap:10px;
-    animation:toastIn .28s cubic-bezier(.16,1,.3,1);
-  }
-  .toast.saliendo{animation:toastOut .22s ease forwards;}
-  .toast.ok{border-left-color:var(--ok);}
-  .toast.error{border-left-color:var(--bad);}
-  .toast.warn{border-left-color:var(--warn);}
-  .toast-icono{font-size:16px; flex-shrink:0; line-height:1.3;}
-  .toast-texto{flex:1; line-height:1.4;}
-  @keyframes toastIn{from{opacity:0; transform:translateY(14px) scale(.96);} to{opacity:1; transform:translateY(0) scale(1);}}
-  @keyframes toastOut{from{opacity:1; transform:translateX(0);} to{opacity:0; transform:translateX(30px);}}
-
-  /* --- Transición de página --- */
-  .pagina{animation:pageFade .28s ease;}
-  @keyframes pageFade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
-
-  /* --- Sidebar: indicador activo con barra de color --- */
-  .nav-item{position:relative; transition:background .15s ease, color .15s ease, padding-left .15s ease;}
-  .nav-item.active{padding-left:14px;}
-  .nav-item.active::before{
-    content:''; position:absolute; left:-10px; top:50%; transform:translateY(-50%);
-    width:4px; height:20px; border-radius:0 4px 4px 0; background:var(--indigo);
-    animation:barGrow .2s ease;
-  }
-  @keyframes barGrow{from{height:0;} to{height:20px;}}
-  .nav-item .ic{transition:transform .15s ease;}
-  .nav-item:hover .ic{transform:scale(1.12);}
-
-  /* --- KPIs: número contador --- */
-  .stat{transition:transform .15s ease, box-shadow .15s ease;}
-  .stat:hover{transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.08);}
-  .stat .num{transition:color .2s ease;}
-
-  /* --- Filas y tarjetas: aparición escalonada --- */
-  @keyframes cardIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
-  .pendiente-card, .historial-card, .recientes-item, .reclamo-item, .acceso-card, .categoria{
-    animation:cardIn .3s ease backwards;
-  }
-  .acceso-card{transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;}
-  .acceso-card:hover{transform:translateY(-3px); box-shadow:0 10px 24px rgba(79,70,229,.12);}
-
-  table.productos tbody tr{transition:background .12s ease;}
-
-  /* --- Botones: micro-interacción --- */
-  .btn, button{transition:transform .1s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;}
-  .btn:active, button:active{transform:scale(.97);}
-  .btn-primary:hover{box-shadow:0 4px 14px rgba(79,70,229,.28);}
-
-  /* --- Checkbox con "pop" al tildar --- */
-  input[type=checkbox]{transition:transform .12s ease;}
-  input[type=checkbox]:active{transform:scale(1.2);}
-
-  /* --- Skeleton loading --- */
-  .skeleton{background:linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%); background-size:200% 100%; animation:skeletonWave 1.4s ease-in-out infinite; border-radius:8px;}
-  @keyframes skeletonWave{0%{background-position:200% 0;} 100%{background-position:-200% 0;}}
-  .skeleton-linea{height:14px; margin-bottom:8px; border-radius:6px;}
-  .skeleton-foto{width:40px; height:40px; border-radius:8px; flex-shrink:0;}
-  .skeleton-card{display:flex; gap:10px; align-items:center; padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; background:var(--card);}
-
-  /* --- Estados vacíos con más vida --- */
-  .empty{animation:cardIn .3s ease;}
-  .empty::before{content:'📭'; display:block; font-size:30px; margin-bottom:8px; opacity:.45;}
-  .empty-icono{font-size:34px; display:block; margin-bottom:8px; opacity:.6;}
-
-  /* --- Check animado de confirmación --- */
-  .check-animado{display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:50%; background:rgba(22,163,74,.12); margin:0 auto 10px;}
-  .check-animado svg{width:28px; height:28px;}
-  .check-animado path{stroke:var(--ok); stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:drawCheck .4s ease forwards .1s;}
-  @keyframes drawCheck{to{stroke-dashoffset:0;}}
-
-  /* --- Escáner: pulso mientras busca --- */
-  #lectorQR{position:relative; transition:box-shadow .3s ease;}
-  #lectorQR.detectando{box-shadow:0 0 0 3px rgba(79,70,229,.35);}
-  @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,.4);} 50%{box-shadow:0 0 0 8px rgba(79,70,229,0);}}
-  #lectorQR.escaneando{animation:scanPulse 1.6s ease-in-out infinite;}
-
-  /* --- Modal de escaneo: leve rebote al abrir ya cubierto por slideUp --- */
-
-  /* --- Contador animado de tendencia en tarjetas de reporte --- */
-  .tendencia-arriba{color:var(--bad);}
-  .tendencia-abajo{color:var(--ok);}
-
-  /* --- Loading spinner reutilizable --- */
-  .spinner-mini{display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--indigo); border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:6px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-
 </style>
 </head>
 <body>
-<div id="toastContainer"></div>
 
 <div id="gate">
   <div class="gate-box">
@@ -426,7 +291,6 @@
       <div class="nav-section">Reportes</div>
       <div class="nav-item" data-pagina="graficos"><span class="ic"><i class="ti ti-chart-pie"></i></span> Gráficos</div>
       <div class="nav-item" data-pagina="productos"><span class="ic"><i class="ti ti-package"></i></span> Top productos</div>
-      <div class="nav-item" data-pagina="palabrasclave"><span class="ic"><i class="ti ti-tags"></i></span> Palabras clave</div>
       <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
@@ -653,16 +517,6 @@
       <div id="resultadoScan" style="max-width:480px; margin-top:14px;"></div>
     </div>
 
-    <!-- MODAL DE RESULTADO DEL ESCANEO -->
-    <div id="scanModalBackdrop" class="scan-modal-backdrop">
-      <div id="scanModal" class="scan-modal">
-        <div class="scan-modal-header">
-          <span id="scanModalTitulo">Resultado</span>
-          <button id="btnCerrarScanModal" class="scan-modal-cerrar">✕</button>
-        </div>
-        <div id="scanModalContenido" class="scan-modal-contenido"></div>
-      </div>
-
     <!-- PEDIDOS -->
     <div class="pagina" id="pagina-pedidos">
       <div class="stats" id="stats"></div>
@@ -692,22 +546,6 @@
     <!-- TOP PRODUCTOS -->
     <div class="pagina" id="pagina-productos">
       <div class="panel"><h3>Top 10 productos (por nombre general)</h3><table class="reporte" id="tablaTop"></table></div>
-    </div>
-
-    <!-- PALABRAS CLAVE -->
-    <div class="pagina" id="pagina-palabrasclave">
-      <div class="stats" id="statsPalabrasClave"></div>
-      <div class="filtros">
-        <input type="text" id="buscarPalabraClave" placeholder="Buscar una palabra puntual..." style="flex:1; min-width:200px;" />
-      </div>
-      <div class="panel">
-        <h3>Palabras más frecuentes en tus compras</h3>
-        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Sacado automático de los títulos de todas tus compras — no hace falta que cargues nada a mano.</p>
-        <div class="panel-chart" style="height:260px;"><canvas id="chartPalabrasClave"></canvas></div>
-      </div>
-      <div class="panel" style="margin-top:14px;">
-        <table class="reporte" id="tablaPalabrasClave"></table>
-      </div>
     </div>
 
     <!-- METODO DE PAGO -->
@@ -1051,14 +889,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', palabrasclave:'Palabras clave', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
-  /* ---------- ESCALONADO VISUAL DE TARJETAS ---------- */
-  function escalonarTarjetas(selector, contenedor = document) {
-    contenedor.querySelectorAll(selector).forEach((el, i) => {
-      el.style.animationDelay = `${Math.min(i * 40, 400)}ms`;
-    });
-  }
-
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -1066,7 +897,6 @@
     document.getElementById('pagina-' + pag).classList.add('activa');
     document.getElementById('tituloPagina').textContent = nombresPagina[pag];
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
-    if (pag === 'palabrasclave') renderPalabrasClave();
     if (pag === 'inicio') renderInicio();
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
@@ -1249,7 +1079,6 @@
       <div class="stat"><div class="num">${vendedoresDistintos}</div><div class="lbl">Vendedores distintos</div></div>
       <div class="stat"><div class="num">${fmtMoneda(ticketPromedio)}</div><div class="lbl">Ticket promedio</div></div>
     `;
-    animarStatsVisibles('statsInicio');
     renderAlertas(pedidos, 'alertasInicio');
 
     const recientesEl = document.getElementById('recientes');
@@ -1306,7 +1135,6 @@
       <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto total</div></div>
       <div class="stat"><div class="num" style="color:var(--bad)">${sinFactura}</div><div class="lbl">Sin factura</div></div>
     `;
-    animarStatsVisibles('stats');
   }
 
   /* ---------- LISTA DE PEDIDOS ---------- */
@@ -1355,7 +1183,6 @@
       body.appendChild(tabla);
       listaEl.appendChild(catDiv);
     }
-    escalonarTarjetas('.categoria', listaEl);
   }
 
   function filaPedido(p) {
@@ -1481,13 +1308,13 @@
         const nombre = `${p.order_id}_${Date.now()}_${archivo.name}`;
         const { error: upErr } = await db.storage.from('facturas').upload(nombre, archivo);
         if (!upErr) facturaUrl = db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl;
-        else mostrarToast('Error subiendo factura: ' + upErr.message, 'error');
+        else alert('Error subiendo factura: ' + upErr.message);
       }
       if (fotoManual) {
         const nombreFoto = `foto_${p.order_id}_${Date.now()}_${fotoManual.name}`;
         const { error: upErrFoto } = await db.storage.from('facturas').upload(nombreFoto, fotoManual);
         if (!upErrFoto) imagenManualUrl = db.storage.from('facturas').getPublicUrl(nombreFoto).data.publicUrl;
-        else mostrarToast('Error subiendo la foto: ' + upErrFoto.message, 'error');
+        else alert('Error subiendo la foto: ' + upErrFoto.message);
       }
       const genericoNuevo = td.querySelector('.c-generico').value || null;
       const precioActual = p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null);
@@ -1524,7 +1351,7 @@
           const anterior = historialPrevio[0].precio_unitario;
           const variacionPct = ((precioActual - anterior) / anterior) * 100;
           if (variacionPct > 15) {
-            mostrarToast(`⚠ El precio de "${genericoNuevo}" subió ${variacionPct.toFixed(1)}% respecto a la última compra (${fmtExacto(anterior)} → ${fmtExacto(precioActual)}).`, 'warn', 5000);
+            alert(`⚠ El precio de "${genericoNuevo}" subió ${variacionPct.toFixed(1)}% respecto a la última compra (${fmtExacto(anterior)} → ${fmtExacto(precioActual)}).`);
           }
         }
         await db.from('price_history').insert({ producto_generico: genericoNuevo, order_id: p.order_id, precio_unitario: precioActual });
@@ -1540,7 +1367,7 @@
         `Motivo del reclamo: [completar acá el detalle del problema]\n\n` +
         `Solicito una solución (cambio, reembolso o el envío correspondiente) a la brevedad. Gracias.`;
       navigator.clipboard.writeText(texto).then(() => {
-        mostrarToast('Plantilla copiada al portapapeles 📋', 'ok');
+        alert('Plantilla copiada al portapapeles. Pegala donde la necesites (mensajería de ML, mail, etc.)');
       }).catch(() => {
         prompt('Copiá el texto manualmente:', texto);
       });
@@ -1637,14 +1464,14 @@
     await db.from('config').update({ dias_alerta_factura: dias, monto_alerta: monto }).eq('id', 1);
     CONFIG.dias_alerta_factura = dias; CONFIG.monto_alerta = monto;
     renderizarPedidos(); renderInicio();
-    mostrarToast('Configuración guardada', 'ok');
+    alert('Configuración guardada');
   };
 
   document.getElementById('btnGuardarPlantilla').onclick = async () => {
     const texto = document.getElementById('cfgPlantillaFactura').value;
     await db.from('config').update({ plantilla_factura: texto }).eq('id', 1);
     CONFIG.plantilla_factura = texto;
-    mostrarToast('Mensaje guardado', 'ok');
+    alert('Mensaje guardado');
   };
   document.getElementById('btnRestaurarPlantilla').onclick = () => {
     document.getElementById('cfgPlantillaFactura').value = PLANTILLA_FACTURA_DEFAULT;
@@ -1691,7 +1518,7 @@
 
   function buscarPorTracking(codigo) {
     const codigoLimpio = extraerIdDeCodigo(codigo);
-    return TODOS.filter(p => {
+    return TODOS.find(p => {
       const candidatos = [
         p.tracking_number, // incluye el ID del envío como respaldo para pedidos Flex (ver sync.js)
         p.pack_id,
@@ -1705,26 +1532,24 @@
     const lugarActual = LUGARES.find(l => l.id === pedido.lugar_id);
     if (lugarActual) {
       return `
-        <div class="scan-lugar-box">
-          <div class="scan-lugar-label">Es para</div>
-          <div class="scan-lugar-actual">
-            <div style="font-weight:700; font-size:14.5px; color:var(--indigo);">🏥 ${lugarActual.nombre}</div>
-            ${pedido.destinatario_interno ? `<div style="font-size:12.5px; margin-top:4px;">Para: ${pedido.destinatario_interno}</div>` : ''}
-            ${pedido.notas_entrega ? `<div style="font-size:12px; color:var(--muted); margin-top:2px;">${pedido.notas_entrega}</div>` : ''}
-          </div>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Es para</div>
+          <div style="font-weight:600; font-size:14px; color:var(--indigo);">🏥 ${lugarActual.nombre}</div>
+          ${pedido.destinatario_interno ? `<div style="font-size:12px; color:var(--text);">Para: ${pedido.destinatario_interno}</div>` : ''}
+          ${pedido.notas_entrega ? `<div style="font-size:12px; color:var(--muted);">${pedido.notas_entrega}</div>` : ''}
         </div>`;
     }
     return `
-      <div class="scan-lugar-box">
-        <div class="scan-lugar-label">¿A dónde va?</div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+        <div style="font-size:12px; color:var(--text); font-weight:700; margin-bottom:6px;">Asignar:</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="selLugarScan" style="font-size:13px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:140px;">
+          <select id="selLugarScan" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;">
             <option value="">Elegir lugar...</option>
             ${LUGARES.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('')}
           </select>
-          <input type="text" id="inputDestinatarioScan" placeholder="Para quién (opcional)" style="font-size:13px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:140px;" />
+          <input type="text" id="inputDestinatarioScan" placeholder="Para quién (opcional)" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;" />
         </div>
-        <button class="btn btn-outline" id="btnAsignarLugarScan" style="margin-top:10px; width:100%; font-size:13px; padding:11px;">Asignar lugar</button>
+        <button class="btn btn-outline" id="btnAsignarLugarScan" style="margin-top:8px; width:100%; font-size:12px;">Asignar lugar</button>
       </div>`;
   }
 
@@ -1733,82 +1558,60 @@
     if (!btn) return;
     btn.onclick = async () => {
       const lugarId = document.getElementById('selLugarScan').value;
-      if (!lugarId) { mostrarToast('Elegí un lugar primero.', 'warn'); return; }
+      if (!lugarId) { alert('Elegí un lugar primero.'); return; }
       const destinatario = document.getElementById('inputDestinatarioScan').value || null;
       await db.from('pedidos').update({ lugar_id: Number(lugarId), destinatario_interno: destinatario }).eq('order_id', pedido.order_id);
       pedido.lugar_id = Number(lugarId);
       pedido.destinatario_interno = destinatario;
-      renderContenidoScanModal(ULTIMO_RESULTADO_SCAN, ULTIMO_CODIGO_SCAN);
+      mostrarResultadoScan(pedido, null);
       cargarPedidos();
     };
   }
 
-  /* ---------- MODAL DE ESCANEO ---------- */
-  let ULTIMO_RESULTADO_SCAN = [];
-  let ULTIMO_CODIGO_SCAN = '';
-
-  function abrirScanModal() {
-    document.getElementById('scanModalBackdrop').classList.add('abierto');
-  }
-  function cerrarScanModal() {
-    document.getElementById('scanModalBackdrop').classList.remove('abierto');
-    if (scannerActivo) { scannerActivo.resume(); document.getElementById('lectorQR').classList.add('escaneando'); }
-  }
-  document.getElementById('btnCerrarScanModal').onclick = cerrarScanModal;
-  document.getElementById('scanModalBackdrop').onclick = (e) => { if (e.target.id === 'scanModalBackdrop') cerrarScanModal(); };
-
-  function renderContenidoScanModal(pedidos, codigoEscaneado) {
-    const contenido = document.getElementById('scanModalContenido');
-    const titulo = document.getElementById('scanModalTitulo');
-
-    if (!pedidos || !pedidos.length) {
-      titulo.textContent = 'No encontrado';
-      contenido.innerHTML = `
-        <div class="scan-not-found">
-          <div class="scan-not-found-icon">🔍</div>
-          <div style="font-weight:700; font-size:14px; margin-bottom:6px;">No encontramos ese código</div>
-          <div style="font-size:12.5px; color:var(--muted);">No hay ningún pedido con "<span class="mono">${codigoEscaneado}</span>". Puede que todavía no lo hayas sincronizado, o sea un código que no es de Mercado Libre.</div>
+  function mostrarResultadoScan(pedido, codigoEscaneado) {
+    const cont = document.getElementById('resultadoScan');
+    if (!pedido) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--bad);">
+          <div style="font-weight:600; color:var(--bad); margin-bottom:6px;">No encontrado</div>
+          <div style="font-size:12.5px; color:var(--muted);">No hay ningún pedido con el tracking <span class="mono">${codigoEscaneado}</span>. Puede que sea un pedido que todavía no sincronizaste, o un código que no es de Mercado Libre.</div>
         </div>`;
       return;
     }
-
-    const todosVerificados = pedidos.every(p => p.verificado_por_mi);
-    titulo.textContent = pedidos.length > 1 ? `${pedidos.length} productos encontrados` : 'Pedido encontrado';
-
-    const filasProductos = pedidos.map(p => `
-      <div class="scan-item-card">
-        ${fotoDe(p) ? `<img class="scan-item-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="scan-item-foto" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);">Sin foto</div>`}
-        <div class="scan-item-info">
-          <div class="scan-item-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-          <div class="scan-item-meta">${p.vendedor_nickname||''} · ${fmtMoneda(p.total)}</div>
-        </div>
-        ${p.verificado_por_mi ? '<span class="scan-check-ok">✓</span>' : ''}
-      </div>
-    `).join('');
-
-    contenido.innerHTML = `
-      ${pedidos.length > 1 ? `<div class="scan-multi-badge">📦 Paquete con ${pedidos.length} productos</div>` : ''}
-      ${filasProductos}
-      ${todosVerificados
-        ? `<div class="scan-exito"><span class="check-animado"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6"/></svg></span><br/>✓ Ya estaba todo marcado como recibido</div>`
-        : `<button class="scan-btn-confirmar" id="btnConfirmarRecibido">Marcar ${pedidos.length > 1 ? 'todos como recibidos' : 'como recibido'}</button>`}
-      ${bloqueLugarScan(pedidos[0])}
-    `;
-
-    if (!todosVerificados) {
-      document.getElementById('btnConfirmarRecibido').onclick = async () => {
-        for (const p of pedidos) {
-          if (!p.verificado_por_mi) {
-            await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', p.order_id);
-            p.verificado_por_mi = true;
-          }
-        }
-        if (navigator.vibrate) navigator.vibrate(80);
-        renderContenidoScanModal(pedidos, codigoEscaneado);
-        cargarPedidos();
-      };
+    if (pedido.verificado_por_mi) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--ok);">
+          <div style="display:flex; gap:10px; align-items:center;">
+            ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
+            <div>
+              <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+              <div style="color:var(--ok); font-size:12px; margin-top:2px;">✓ Ya estaba marcado como recibido</div>
+            </div>
+          </div>
+          ${bloqueLugarScan(pedido)}
+        </div>`;
+      conectarBloqueLugarScan(pedido);
+      return;
     }
-    conectarBloqueLugarScan(pedidos[0]);
+    cont.innerHTML = `
+      <div class="panel" style="border-color:var(--indigo);">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+          ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
+          <div>
+            <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">${pedido.vendedor_nickname||''} · ${fmtMoneda(pedido.total)}</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnConfirmarRecibido" style="width:100%;">Marcar como recibido</button>
+        ${bloqueLugarScan(pedido)}
+      </div>`;
+    document.getElementById('btnConfirmarRecibido').onclick = async () => {
+      await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', pedido.order_id);
+      pedido.verificado_por_mi = true;
+      mostrarResultadoScan(pedido, codigoEscaneado);
+      cargarPedidos();
+    };
+    conectarBloqueLugarScan(pedido);
   }
 
   function extraerIdDeCodigo(codigo) {
@@ -1823,17 +1626,11 @@
   }
 
   function onScanExitoso(codigoEscaneado) {
-    const pedidos = buscarPorTracking(codigoEscaneado);
-    const idLimpio = extraerIdDeCodigo(codigoEscaneado);
-    ULTIMO_RESULTADO_SCAN = pedidos;
-    ULTIMO_CODIGO_SCAN = idLimpio;
-    renderContenidoScanModal(pedidos, idLimpio);
-    abrirScanModal();
-    sonidoBeep(pedidos && pedidos.length > 0);
-    if (navigator.vibrate) navigator.vibrate(pedidos && pedidos.length > 0 ? [60] : [40, 60, 40]);
-    // pausa la cámara mientras el modal está abierto; se reanuda al cerrar
+    const pedido = buscarPorTracking(codigoEscaneado);
+    mostrarResultadoScan(pedido, extraerIdDeCodigo(codigoEscaneado));
+    // pausa breve para no re-disparar el mismo código en loop mientras la cámara sigue apuntando
     if (scannerActivo) scannerActivo.pause(true);
-    document.getElementById('lectorQR').classList.remove('escaneando');
+    setTimeout(() => { if (scannerActivo) scannerActivo.resume(); }, 2000);
   }
 
   document.getElementById('btnIniciarScan').onclick = async () => {
@@ -1842,23 +1639,15 @@
       scannerActivo = new Html5Qrcode('lectorQR');
       await scannerActivo.start(
         { facingMode: 'environment' },
-        {
-          fps: 20,
-          qrbox: { width: 300, height: 220 },
-          aspectRatio: 1.4,
-          disableFlip: false,
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true }, // usa el lector nativo del navegador cuando está disponible, mucho más rápido
-          formatsToSupport: [
+        { fps: 10, qrbox: { width: 260, height: 140 }, formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_39,
-          ],
-        },
+          ] },
         (decodedText) => onScanExitoso(decodedText),
         () => {} // errores de lectura frame a frame, se ignoran (es normal mientras enfoca)
       );
       document.getElementById('btnIniciarScan').style.display = 'none';
       document.getElementById('btnDetenerScan').style.display = 'inline-block';
-      document.getElementById('lectorQR').classList.add('escaneando');
     } catch (e) {
       document.getElementById('resultadoScan').innerHTML = `<div class="alerta bad">No se pudo acceder a la cámara: ${e.message || e}. Revisá los permisos del navegador, o usá el campo manual de abajo.</div>`;
     }
@@ -2324,7 +2113,6 @@
       };
       cont.appendChild(div);
     }
-    escalonarTarjetas('.pendiente-card', cont);
   }
 
   /* ---------- EXPORTAR HISTORIAL: EXCEL / PDF / IMPRIMIR ---------- */
@@ -2351,7 +2139,7 @@
 
   document.getElementById('btnExportarExcelHist').onclick = () => {
     const filas = filasParaExportar();
-    if (!filas.length) { mostrarToast('No hay pedidos para exportar con este filtro.', 'warn'); return; }
+    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
     const ws = XLSX.utils.json_to_sheet(filas);
     // Ancho de columnas prolijo
     ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: Math.max(k.length + 2, 14) }));
@@ -2370,7 +2158,7 @@
 
   document.getElementById('btnExportarPdfHist').onclick = () => {
     const filas = ULTIMO_HISTORIAL_FILTRADO;
-    if (!filas.length) { mostrarToast('No hay pedidos para exportar con este filtro.', 'warn'); return; }
+    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
 
@@ -2444,7 +2232,6 @@
       div.querySelector('.c-imprimir-una').onclick = () => imprimirYMarcar(p);
       cont.appendChild(div);
     }
-    escalonarTarjetas('.pendiente-card', cont);
   }
 
   async function imprimirYMarcar(p) {
@@ -2516,7 +2303,7 @@
     const total = Number(document.getElementById('manTotal').value);
     const categoria = document.getElementById('manCategoria').value.trim();
 
-    if (!titulo || !fecha || !total) { mostrarToast('Completá al menos producto, fecha y total.', 'warn'); return; }
+    if (!titulo || !fecha || !total) { alert('Completá al menos producto, fecha y total.'); return; }
 
     const idSintetico = Date.now(); // ID único, ya que no viene de Mercado Libre
     const { error } = await db.from('pedidos').insert({
@@ -2533,14 +2320,14 @@
       manual_historico: true,
       verificado_por_mi: true,
     });
-    if (error) { mostrarToast('Error al guardar: ' + error.message, 'error'); return; }
+    if (error) { alert('Error al guardar: ' + error.message); return; }
 
     document.getElementById('manTitulo').value = '';
     document.getElementById('manVendedor').value = '';
     document.getElementById('manFecha').value = '';
     document.getElementById('manTotal').value = '';
     document.getElementById('manCategoria').value = '';
-    mostrarToast('Compra histórica agregada ✓', 'ok');
+    alert('Compra histórica agregada.');
     cargarPedidos();
   };
 
@@ -2575,11 +2362,11 @@
   document.getElementById('buscarSinLugar').oninput = renderLugares;
   document.getElementById('btnAgregarLugar').onclick = async () => {
     const nombre = document.getElementById('lugarNombre').value.trim();
-    if (!nombre) { mostrarToast('Ponele un nombre al lugar.', 'warn'); return; }
+    if (!nombre) { alert('Ponele un nombre al lugar.'); return; }
     const direccion = document.getElementById('lugarDireccion').value.trim() || null;
     const contacto = document.getElementById('lugarContacto').value.trim() || null;
     const { error } = await db.from('lugares').insert({ nombre, direccion, contacto });
-    if (error) { mostrarToast('Error: ' + error.message, 'error'); return; }
+    if (error) { alert('Error: ' + error.message); return; }
     document.getElementById('lugarNombre').value = '';
     document.getElementById('lugarDireccion').value = '';
     document.getElementById('lugarContacto').value = '';
@@ -2928,7 +2715,7 @@
         });
         const data = await resp.json();
         btn.textContent = resp.ok ? 'Guardado ✓' : 'Error';
-        if (!resp.ok) mostrarToast('Error: ' + (data.error || 'desconocido'), 'error');
+        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
         setTimeout(() => renderMisPublicaciones(), 800);
       };
       div.querySelector('.c-toggle-status').onclick = async (e) => {
@@ -2939,12 +2726,11 @@
           body: JSON.stringify({ item_id: p.item_id, status: nuevoStatus }),
         });
         const data = await resp.json();
-        if (!resp.ok) mostrarToast('Error: ' + (data.error || 'desconocido'), 'error');
+        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
         renderMisPublicaciones();
       };
       cont.appendChild(div);
     }
-    escalonarTarjetas('.pendiente-card', cont);
   }
 
   /* ---------- SOLICITAR FACTURAS ---------- */
@@ -3043,7 +2829,7 @@
     if (btnEnviar) {
       btnEnviar.onclick = async () => {
         const seleccionadas = [...document.querySelectorAll('.c-check-sinchat:checked')].map(c => c.dataset.order);
-        if (!seleccionadas.length) { mostrarToast('Seleccioná al menos una.', 'warn'); return; }
+        if (!seleccionadas.length) { alert('Seleccioná al menos una.'); return; }
         estado.textContent = 'Enviando...';
         let enviados = 0;
         for (const orderId of seleccionadas) {
@@ -3091,127 +2877,6 @@
       </div>
     `).join('') : '<div class="empty">Nadie te dejó en visto — o todos ya te contestaron. 👍</div>';
   };
-
-  /* ---------- PALABRAS CLAVE ---------- */
-  const STOPWORDS_ES = new Set([
-    'de','del','la','el','los','las','un','una','unos','unas','y','o','para','por','con','sin',
-    'en','a','al','x','cm','mm','kg','gr','ml','lt','pcs','pack','packs','unidades','unidad',
-    'nuevo','nueva','color','colores','modelo','set','kit','tipo','marca','original','oferta',
-    'envio','envios','gratis','importado','importada','profesional','universal','varios',
-    'cms','mts','mt','mtx','xl','xxl','xs','pza','pzas', 'u', 'c'
-  ]);
-  let chartPalabras;
-
-  function extraerPalabras(titulo) {
-    return (titulo || '')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sacar acentos
-      .replace(/[^a-z0-9ñ\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 2 && !STOPWORDS_ES.has(w) && isNaN(w));
-  }
-
-  function renderPalabrasClave() {
-    const busqueda = document.getElementById('buscarPalabraClave').value.toLowerCase().trim();
-    const conteo = {};
-
-    TODOS.forEach(p => {
-      const palabras = new Set(extraerPalabras(p.titulo)); // Set: contamos 1 vez por pedido, no por repetición dentro del mismo título
-      palabras.forEach(palabra => {
-        if (!conteo[palabra]) conteo[palabra] = { cantidad: 0, gasto: 0 };
-        conteo[palabra].cantidad++;
-        conteo[palabra].gasto += montoReal(p) || 0;
-      });
-    });
-
-    let listado = Object.keys(conteo).map(palabra => ({ palabra, ...conteo[palabra] }));
-    if (busqueda) listado = listado.filter(l => l.palabra.includes(busqueda));
-    listado.sort((a,b) => b.cantidad - a.cantidad);
-
-    document.getElementById('statsPalabrasClave').innerHTML = `
-      <div class="stat"><div class="num">${listado.length}</div><div class="lbl">Palabras distintas detectadas</div></div>
-      <div class="stat"><div class="num">${listado[0]?.palabra || '-'}</div><div class="lbl">Palabra más frecuente</div></div>
-      <div class="stat"><div class="num">${listado[0]?.cantidad || 0}</div><div class="lbl">Veces que aparece</div></div>
-    `;
-
-    const top20 = listado.slice(0, 20);
-    if (chartPalabras) chartPalabras.destroy();
-    chartPalabras = new Chart(document.getElementById('chartPalabrasClave'), {
-      type: 'bar',
-      data: { labels: top20.map(l => l.palabra), datasets: [{ data: top20.map(l => l.cantidad), backgroundColor: '#4f46e5', borderRadius: 4 }] },
-      options: {
-        indexAxis: 'y',
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } },
-      },
-    });
-
-    document.getElementById('tablaPalabrasClave').innerHTML = `<tr><th>Palabra</th><th>Compras donde aparece</th><th>Gasto asociado</th></tr>` +
-      listado.slice(0, 60).map(l => `<tr><td>${l.palabra}</td><td>${l.cantidad}</td><td>${fmtMoneda(l.gasto)}</td></tr>`).join('');
-  }
-  document.getElementById('buscarPalabraClave').oninput = renderPalabrasClave;
-
-  /* ---------- TOASTS ---------- */
-  function mostrarToast(mensaje, tipo = 'ok', duracion = 3200) {
-    const cont = document.getElementById('toastContainer');
-    const iconos = { ok: '✅', error: '❌', warn: '⚠️' };
-    const div = document.createElement('div');
-    div.className = `toast ${tipo}`;
-    div.innerHTML = `<span class="toast-icono">${iconos[tipo] || 'ℹ️'}</span><span class="toast-texto">${mensaje}</span>`;
-    cont.appendChild(div);
-    setTimeout(() => {
-      div.classList.add('saliendo');
-      setTimeout(() => div.remove(), 240);
-    }, duracion);
-  }
-
-  /* ---------- CONTADOR ANIMADO PARA KPIs ---------- */
-  function animarNumero(el, valorFinal, prefijo = '', esDecimal = false) {
-    if (!el) return;
-    const duracion = 700;
-    const inicio = performance.now();
-    const valorInicial = 0;
-    function paso(ahora) {
-      const progreso = Math.min((ahora - inicio) / duracion, 1);
-      const facilitado = 1 - Math.pow(1 - progreso, 3); // ease-out cubic
-      const actual = valorInicial + (valorFinal - valorInicial) * facilitado;
-      el.textContent = prefijo + (esDecimal ? actual.toFixed(1) : Math.round(actual).toLocaleString('es-AR'));
-      if (progreso < 1) requestAnimationFrame(paso);
-      else el.textContent = prefijo + (esDecimal ? valorFinal.toFixed(1) : Math.round(valorFinal).toLocaleString('es-AR'));
-    }
-    requestAnimationFrame(paso);
-  }
-  // Anima automáticamente cualquier .stat .num que tenga un número simple adentro,
-  // después de que se pinte el HTML de las tarjetas.
-  function animarStatsVisibles(contenedorId) {
-    const cont = document.getElementById(contenedorId);
-    if (!cont) return;
-    cont.querySelectorAll('.stat .num').forEach(el => {
-      const texto = el.textContent.trim();
-      const soloNumero = texto.replace(/[^\d.-]/g, '');
-      if (soloNumero && /^-?\d+(\.\d+)?$/.test(soloNumero) && texto.replace(soloNumero,'').length <= 2) {
-        const prefijo = texto.startsWith('$') ? '$' : '';
-        const valor = Number(soloNumero);
-        el.textContent = prefijo + '0';
-        animarNumero(el, valor, prefijo);
-      }
-    });
-  }
-
-  /* ---------- SONIDO Y VIBRACIÓN DE ESCANEO ---------- */
-  function sonidoBeep(exito = true) {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = exito ? 880 : 220;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-      osc.start(); osc.stop(ctx.currentTime + 0.18);
-    } catch {}
-  }
 
   function init() {
     cargarConfig();
