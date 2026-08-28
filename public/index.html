@@ -220,46 +220,6 @@
   .reclamo-plazo.ok{background:rgba(217,119,6,.12); color:var(--warn);}
 
   .solo-mobile{display:none;}
-
-  .scan-modal-backdrop{
-    display:none; position:fixed; inset:0; background:rgba(15,17,23,.55); backdrop-filter:blur(4px);
-    z-index:200; align-items:flex-end; justify-content:center;
-  }
-  .scan-modal-backdrop.abierto{display:flex; animation:fadeIn .15s ease;}
-  .scan-modal{
-    background:var(--card); width:100%; max-width:460px; border-radius:20px 20px 0 0;
-    box-shadow:0 -8px 40px rgba(0,0,0,.35); animation:slideUp .22s cubic-bezier(.16,1,.3,1);
-    max-height:85vh; display:flex; flex-direction:column; overflow:hidden;
-  }
-  @media(min-width:520px){
-    .scan-modal-backdrop{align-items:center;}
-    .scan-modal{border-radius:20px; margin-bottom:0;}
-  }
-  @keyframes slideUp{from{transform:translateY(40px); opacity:0;} to{transform:translateY(0); opacity:1;}}
-  @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
-  .scan-modal-header{
-    display:flex; justify-content:space-between; align-items:center; padding:16px 18px;
-    border-bottom:1px solid var(--border); font-weight:700; font-size:14px;
-  }
-  .scan-modal-cerrar{background:var(--bg); border:none; width:30px; height:30px; border-radius:50%; color:var(--muted); font-size:14px; cursor:pointer;}
-  .scan-modal-cerrar:hover{background:var(--indigo-l); color:var(--indigo);}
-  .scan-modal-contenido{padding:18px; overflow-y:auto;}
-
-  .scan-item-card{display:flex; gap:12px; align-items:center; padding:10px; background:var(--bg); border-radius:12px; margin-bottom:8px;}
-  .scan-item-foto{width:52px; height:52px; border-radius:10px; object-fit:cover; flex-shrink:0; border:1px solid var(--border); background:var(--card);}
-  .scan-item-info{flex:1; min-width:0;}
-  .scan-item-titulo{font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .scan-item-meta{font-size:11.5px; color:var(--muted); margin-top:2px;}
-  .scan-multi-badge{display:inline-flex; align-items:center; gap:6px; background:var(--indigo-l); color:var(--indigo); font-size:12px; font-weight:700; padding:6px 12px; border-radius:20px; margin-bottom:12px;}
-  .scan-check-ok{color:var(--ok); font-size:18px;}
-  .scan-btn-confirmar{width:100%; background:linear-gradient(135deg,var(--indigo),#6d5ff5); color:#fff; padding:14px; border-radius:14px; font-size:14.5px; font-weight:700; border:none; box-shadow:0 4px 14px rgba(79,70,229,.35); margin-top:6px;}
-  .scan-btn-confirmar:active{transform:scale(.98);}
-  .scan-exito{text-align:center; padding:8px 0; color:var(--ok); font-weight:600; font-size:13.5px;}
-  .scan-lugar-box{margin-top:16px; padding-top:16px; border-top:1px dashed var(--border);}
-  .scan-lugar-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-bottom:8px;}
-  .scan-lugar-actual{background:rgba(79,70,229,.08); border-radius:12px; padding:12px 14px; font-size:13px;}
-  .scan-not-found{text-align:center; padding:20px 0;}
-  .scan-not-found-icon{font-size:38px; margin-bottom:10px;}
   .historial-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;}
   .historial-card .foto-prod{width:46px; height:46px; flex-shrink:0;}
   .historial-card .info{flex:1; min-width:0;}
@@ -331,7 +291,6 @@
       <div class="nav-section">Reportes</div>
       <div class="nav-item" data-pagina="graficos"><span class="ic"><i class="ti ti-chart-pie"></i></span> Gráficos</div>
       <div class="nav-item" data-pagina="productos"><span class="ic"><i class="ti ti-package"></i></span> Top productos</div>
-      <div class="nav-item" data-pagina="palabrasclave"><span class="ic"><i class="ti ti-tags"></i></span> Palabras clave</div>
       <div class="nav-item" data-pagina="pagos"><span class="ic"><i class="ti ti-credit-card"></i></span> Método de pago</div>
       <div class="nav-item" data-pagina="rubros"><span class="ic"><i class="ti ti-tags"></i></span> Rubros</div>
       <div class="nav-item" data-pagina="conciliacion"><span class="ic"><i class="ti ti-clipboard-check"></i></span> Conciliación</div>
@@ -558,16 +517,6 @@
       <div id="resultadoScan" style="max-width:480px; margin-top:14px;"></div>
     </div>
 
-    <!-- MODAL DE RESULTADO DEL ESCANEO -->
-    <div id="scanModalBackdrop" class="scan-modal-backdrop">
-      <div id="scanModal" class="scan-modal">
-        <div class="scan-modal-header">
-          <span id="scanModalTitulo">Resultado</span>
-          <button id="btnCerrarScanModal" class="scan-modal-cerrar">✕</button>
-        </div>
-        <div id="scanModalContenido" class="scan-modal-contenido"></div>
-      </div>
-
     <!-- PEDIDOS -->
     <div class="pagina" id="pagina-pedidos">
       <div class="stats" id="stats"></div>
@@ -597,22 +546,6 @@
     <!-- TOP PRODUCTOS -->
     <div class="pagina" id="pagina-productos">
       <div class="panel"><h3>Top 10 productos (por nombre general)</h3><table class="reporte" id="tablaTop"></table></div>
-    </div>
-
-    <!-- PALABRAS CLAVE -->
-    <div class="pagina" id="pagina-palabrasclave">
-      <div class="stats" id="statsPalabrasClave"></div>
-      <div class="filtros">
-        <input type="text" id="buscarPalabraClave" placeholder="Buscar una palabra puntual..." style="flex:1; min-width:200px;" />
-      </div>
-      <div class="panel">
-        <h3>Palabras más frecuentes en tus compras</h3>
-        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Sacado automático de los títulos de todas tus compras — no hace falta que cargues nada a mano.</p>
-        <div class="panel-chart" style="height:260px;"><canvas id="chartPalabrasClave"></canvas></div>
-      </div>
-      <div class="panel" style="margin-top:14px;">
-        <table class="reporte" id="tablaPalabrasClave"></table>
-      </div>
     </div>
 
     <!-- METODO DE PAGO -->
@@ -919,11 +852,7 @@
     document.body.setAttribute('data-app-visible', '1');
     init();
   }
-  // Diferimos el arranque con setTimeout(0) para que primero terminen de
-  // ejecutarse TODAS las declaraciones del resto del archivo (evita errores
-  // de "no se puede acceder antes de la inicialización" si el orden de
-  // funciones/variables cambia en futuras ediciones).
-  if (tokenValido()) setTimeout(mostrarApp, 0);
+  if (tokenValido()) mostrarApp();
 
   document.getElementById('gateBtn').onclick = async () => {
     const pass = document.getElementById('gatePass').value;
@@ -935,7 +864,7 @@
       const data = await resp.json();
       if (!resp.ok) { errEl.textContent = data.error || 'Error'; return; }
       localStorage.setItem(TOKEN_KEY, data.token);
-      setTimeout(mostrarApp, 0);
+      mostrarApp();
     } catch { errEl.textContent = 'Error de red'; }
   };
   document.getElementById('gatePass').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('gateBtn').click(); };
@@ -960,8 +889,7 @@
   document.getElementById('backdropMenu').onclick = cerrarMenuMobile;
 
   /* ---------- NAV SIDEBAR ---------- */
-  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', palabrasclave:'Palabras clave', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
-
+  const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -969,7 +897,6 @@
     document.getElementById('pagina-' + pag).classList.add('activa');
     document.getElementById('tituloPagina').textContent = nombresPagina[pag];
     if (['graficos','productos','pagos','rubros','conciliacion'].includes(pag)) renderReportes();
-    if (pag === 'palabrasclave') renderPalabrasClave();
     if (pag === 'inicio') renderInicio();
     if (pag === 'historial') renderHistorial();
     if (pag === 'sinfactura') renderSinFactura();
@@ -1440,7 +1367,7 @@
         `Motivo del reclamo: [completar acá el detalle del problema]\n\n` +
         `Solicito una solución (cambio, reembolso o el envío correspondiente) a la brevedad. Gracias.`;
       navigator.clipboard.writeText(texto).then(() => {
-        alert('Plantilla copiada al portapapeles 📋');
+        alert('Plantilla copiada al portapapeles. Pegala donde la necesites (mensajería de ML, mail, etc.)');
       }).catch(() => {
         prompt('Copiá el texto manualmente:', texto);
       });
@@ -1591,7 +1518,7 @@
 
   function buscarPorTracking(codigo) {
     const codigoLimpio = extraerIdDeCodigo(codigo);
-    return TODOS.filter(p => {
+    return TODOS.find(p => {
       const candidatos = [
         p.tracking_number, // incluye el ID del envío como respaldo para pedidos Flex (ver sync.js)
         p.pack_id,
@@ -1605,26 +1532,24 @@
     const lugarActual = LUGARES.find(l => l.id === pedido.lugar_id);
     if (lugarActual) {
       return `
-        <div class="scan-lugar-box">
-          <div class="scan-lugar-label">Es para</div>
-          <div class="scan-lugar-actual">
-            <div style="font-weight:700; font-size:14.5px; color:var(--indigo);">🏥 ${lugarActual.nombre}</div>
-            ${pedido.destinatario_interno ? `<div style="font-size:12.5px; margin-top:4px;">Para: ${pedido.destinatario_interno}</div>` : ''}
-            ${pedido.notas_entrega ? `<div style="font-size:12px; color:var(--muted); margin-top:2px;">${pedido.notas_entrega}</div>` : ''}
-          </div>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+          <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Es para</div>
+          <div style="font-weight:600; font-size:14px; color:var(--indigo);">🏥 ${lugarActual.nombre}</div>
+          ${pedido.destinatario_interno ? `<div style="font-size:12px; color:var(--text);">Para: ${pedido.destinatario_interno}</div>` : ''}
+          ${pedido.notas_entrega ? `<div style="font-size:12px; color:var(--muted);">${pedido.notas_entrega}</div>` : ''}
         </div>`;
     }
     return `
-      <div class="scan-lugar-box">
-        <div class="scan-lugar-label">¿A dónde va?</div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+        <div style="font-size:12px; color:var(--text); font-weight:700; margin-bottom:6px;">Asignar:</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="selLugarScan" style="font-size:13px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:140px;">
+          <select id="selLugarScan" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;">
             <option value="">Elegir lugar...</option>
             ${LUGARES.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('')}
           </select>
-          <input type="text" id="inputDestinatarioScan" placeholder="Para quién (opcional)" style="font-size:13px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; min-width:140px;" />
+          <input type="text" id="inputDestinatarioScan" placeholder="Para quién (opcional)" style="font-size:12px; padding:7px 8px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); flex:1; min-width:140px;" />
         </div>
-        <button class="btn btn-outline" id="btnAsignarLugarScan" style="margin-top:10px; width:100%; font-size:13px; padding:11px;">Asignar lugar</button>
+        <button class="btn btn-outline" id="btnAsignarLugarScan" style="margin-top:8px; width:100%; font-size:12px;">Asignar lugar</button>
       </div>`;
   }
 
@@ -1638,77 +1563,55 @@
       await db.from('pedidos').update({ lugar_id: Number(lugarId), destinatario_interno: destinatario }).eq('order_id', pedido.order_id);
       pedido.lugar_id = Number(lugarId);
       pedido.destinatario_interno = destinatario;
-      renderContenidoScanModal(ULTIMO_RESULTADO_SCAN, ULTIMO_CODIGO_SCAN);
+      mostrarResultadoScan(pedido, null);
       cargarPedidos();
     };
   }
 
-  /* ---------- MODAL DE ESCANEO ---------- */
-  let ULTIMO_RESULTADO_SCAN = [];
-  let ULTIMO_CODIGO_SCAN = '';
-
-  function abrirScanModal() {
-    document.getElementById('scanModalBackdrop').classList.add('abierto');
-  }
-  function cerrarScanModal() {
-    document.getElementById('scanModalBackdrop').classList.remove('abierto');
-    if (scannerActivo) { scannerActivo.resume(); }
-  }
-  document.getElementById('btnCerrarScanModal').onclick = cerrarScanModal;
-  document.getElementById('scanModalBackdrop').onclick = (e) => { if (e.target.id === 'scanModalBackdrop') cerrarScanModal(); };
-
-  function renderContenidoScanModal(pedidos, codigoEscaneado) {
-    const contenido = document.getElementById('scanModalContenido');
-    const titulo = document.getElementById('scanModalTitulo');
-
-    if (!pedidos || !pedidos.length) {
-      titulo.textContent = 'No encontrado';
-      contenido.innerHTML = `
-        <div class="scan-not-found">
-          <div class="scan-not-found-icon">🔍</div>
-          <div style="font-weight:700; font-size:14px; margin-bottom:6px;">No encontramos ese código</div>
-          <div style="font-size:12.5px; color:var(--muted);">No hay ningún pedido con "<span class="mono">${codigoEscaneado}</span>". Puede que todavía no lo hayas sincronizado, o sea un código que no es de Mercado Libre.</div>
+  function mostrarResultadoScan(pedido, codigoEscaneado) {
+    const cont = document.getElementById('resultadoScan');
+    if (!pedido) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--bad);">
+          <div style="font-weight:600; color:var(--bad); margin-bottom:6px;">No encontrado</div>
+          <div style="font-size:12.5px; color:var(--muted);">No hay ningún pedido con el tracking <span class="mono">${codigoEscaneado}</span>. Puede que sea un pedido que todavía no sincronizaste, o un código que no es de Mercado Libre.</div>
         </div>`;
       return;
     }
-
-    const todosVerificados = pedidos.every(p => p.verificado_por_mi);
-    titulo.textContent = pedidos.length > 1 ? `${pedidos.length} productos encontrados` : 'Pedido encontrado';
-
-    const filasProductos = pedidos.map(p => `
-      <div class="scan-item-card">
-        ${fotoDe(p) ? `<img class="scan-item-foto" src="${fotoDe(p)}" onerror="this.style.display='none'" />` : `<div class="scan-item-foto" style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);">Sin foto</div>`}
-        <div class="scan-item-info">
-          <div class="scan-item-titulo">${p.titulo || 'Pedido #' + p.order_id}</div>
-          <div class="scan-item-meta">${p.vendedor_nickname||''} · ${fmtMoneda(p.total)}</div>
-        </div>
-        ${p.verificado_por_mi ? '<span class="scan-check-ok">✓</span>' : ''}
-      </div>
-    `).join('');
-
-    contenido.innerHTML = `
-      ${pedidos.length > 1 ? `<div class="scan-multi-badge">📦 Paquete con ${pedidos.length} productos</div>` : ''}
-      ${filasProductos}
-      ${todosVerificados
-        ? `<div class="scan-exito">✓ Ya estaba todo marcado como recibido</div>`
-        : `<button class="scan-btn-confirmar" id="btnConfirmarRecibido">Marcar ${pedidos.length > 1 ? 'todos como recibidos' : 'como recibido'}</button>`}
-      ${bloqueLugarScan(pedidos[0])}
-    `;
-
-    if (!todosVerificados) {
-      document.getElementById('btnConfirmarRecibido').onclick = async () => {
-        for (const p of pedidos) {
-          if (!p.verificado_por_mi) {
-            await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', p.order_id);
-            p.verificado_por_mi = true;
-          }
-        }
-        if (navigator.vibrate) navigator.vibrate(80);
-        renderContenidoScanModal(pedidos, codigoEscaneado);
-        cargarPedidos();
-      };
+    if (pedido.verificado_por_mi) {
+      cont.innerHTML = `
+        <div class="panel" style="border-color:var(--ok);">
+          <div style="display:flex; gap:10px; align-items:center;">
+            ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
+            <div>
+              <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+              <div style="color:var(--ok); font-size:12px; margin-top:2px;">✓ Ya estaba marcado como recibido</div>
+            </div>
+          </div>
+          ${bloqueLugarScan(pedido)}
+        </div>`;
+      conectarBloqueLugarScan(pedido);
+      return;
     }
-    conectarBloqueLugarScan(pedidos[0]);
+    cont.innerHTML = `
+      <div class="panel" style="border-color:var(--indigo);">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+          ${fotoDe(pedido) ? `<img class="foto-prod" src="${fotoDe(pedido)}" style="width:52px;height:52px;" />` : ''}
+          <div>
+            <div style="font-weight:600; font-size:13px;">${pedido.titulo || 'Pedido #' + pedido.order_id}</div>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">${pedido.vendedor_nickname||''} · ${fmtMoneda(pedido.total)}</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnConfirmarRecibido" style="width:100%;">Marcar como recibido</button>
+        ${bloqueLugarScan(pedido)}
+      </div>`;
+    document.getElementById('btnConfirmarRecibido').onclick = async () => {
+      await db.from('pedidos').update({ verificado_por_mi: true }).eq('order_id', pedido.order_id);
+      pedido.verificado_por_mi = true;
+      mostrarResultadoScan(pedido, codigoEscaneado);
+      cargarPedidos();
+    };
+    conectarBloqueLugarScan(pedido);
   }
 
   function extraerIdDeCodigo(codigo) {
@@ -1723,14 +1626,11 @@
   }
 
   function onScanExitoso(codigoEscaneado) {
-    const pedidos = buscarPorTracking(codigoEscaneado);
-    const idLimpio = extraerIdDeCodigo(codigoEscaneado);
-    ULTIMO_RESULTADO_SCAN = pedidos;
-    ULTIMO_CODIGO_SCAN = idLimpio;
-    renderContenidoScanModal(pedidos, idLimpio);
-    abrirScanModal();
-    // pausa la cámara mientras el modal está abierto; se reanuda al cerrar
+    const pedido = buscarPorTracking(codigoEscaneado);
+    mostrarResultadoScan(pedido, extraerIdDeCodigo(codigoEscaneado));
+    // pausa breve para no re-disparar el mismo código en loop mientras la cámara sigue apuntando
     if (scannerActivo) scannerActivo.pause(true);
+    setTimeout(() => { if (scannerActivo) scannerActivo.resume(); }, 2000);
   }
 
   document.getElementById('btnIniciarScan').onclick = async () => {
@@ -1739,17 +1639,10 @@
       scannerActivo = new Html5Qrcode('lectorQR');
       await scannerActivo.start(
         { facingMode: 'environment' },
-        {
-          fps: 20,
-          qrbox: { width: 300, height: 220 },
-          aspectRatio: 1.4,
-          disableFlip: false,
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true }, // usa el lector nativo del navegador cuando está disponible, mucho más rápido
-          formatsToSupport: [
+        { fps: 10, qrbox: { width: 260, height: 140 }, formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_39,
-          ],
-        },
+          ] },
         (decodedText) => onScanExitoso(decodedText),
         () => {} // errores de lectura frame a frame, se ignoran (es normal mientras enfoca)
       );
@@ -2434,7 +2327,7 @@
     document.getElementById('manFecha').value = '';
     document.getElementById('manTotal').value = '';
     document.getElementById('manCategoria').value = '';
-    alert('Compra histórica agregada ✓');
+    alert('Compra histórica agregada.');
     cargarPedidos();
   };
 
@@ -2984,65 +2877,6 @@
       </div>
     `).join('') : '<div class="empty">Nadie te dejó en visto — o todos ya te contestaron. 👍</div>';
   };
-
-  /* ---------- PALABRAS CLAVE ---------- */
-  const STOPWORDS_ES = new Set([
-    'de','del','la','el','los','las','un','una','unos','unas','y','o','para','por','con','sin',
-    'en','a','al','x','cm','mm','kg','gr','ml','lt','pcs','pack','packs','unidades','unidad',
-    'nuevo','nueva','color','colores','modelo','set','kit','tipo','marca','original','oferta',
-    'envio','envios','gratis','importado','importada','profesional','universal','varios',
-    'cms','mts','mt','mtx','xl','xxl','xs','pza','pzas', 'u', 'c'
-  ]);
-  let chartPalabras;
-
-  function extraerPalabras(titulo) {
-    return (titulo || '')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sacar acentos
-      .replace(/[^a-z0-9ñ\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 2 && !STOPWORDS_ES.has(w) && isNaN(w));
-  }
-
-  function renderPalabrasClave() {
-    const busqueda = document.getElementById('buscarPalabraClave').value.toLowerCase().trim();
-    const conteo = {};
-
-    TODOS.forEach(p => {
-      const palabras = new Set(extraerPalabras(p.titulo)); // Set: contamos 1 vez por pedido, no por repetición dentro del mismo título
-      palabras.forEach(palabra => {
-        if (!conteo[palabra]) conteo[palabra] = { cantidad: 0, gasto: 0 };
-        conteo[palabra].cantidad++;
-        conteo[palabra].gasto += montoReal(p) || 0;
-      });
-    });
-
-    let listado = Object.keys(conteo).map(palabra => ({ palabra, ...conteo[palabra] }));
-    if (busqueda) listado = listado.filter(l => l.palabra.includes(busqueda));
-    listado.sort((a,b) => b.cantidad - a.cantidad);
-
-    document.getElementById('statsPalabrasClave').innerHTML = `
-      <div class="stat"><div class="num">${listado.length}</div><div class="lbl">Palabras distintas detectadas</div></div>
-      <div class="stat"><div class="num">${listado[0]?.palabra || '-'}</div><div class="lbl">Palabra más frecuente</div></div>
-      <div class="stat"><div class="num">${listado[0]?.cantidad || 0}</div><div class="lbl">Veces que aparece</div></div>
-    `;
-
-    const top20 = listado.slice(0, 20);
-    if (chartPalabras) chartPalabras.destroy();
-    chartPalabras = new Chart(document.getElementById('chartPalabrasClave'), {
-      type: 'bar',
-      data: { labels: top20.map(l => l.palabra), datasets: [{ data: top20.map(l => l.cantidad), backgroundColor: '#4f46e5', borderRadius: 4 }] },
-      options: {
-        indexAxis: 'y',
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } },
-      },
-    });
-
-    document.getElementById('tablaPalabrasClave').innerHTML = `<tr><th>Palabra</th><th>Compras donde aparece</th><th>Gasto asociado</th></tr>` +
-      listado.slice(0, 60).map(l => `<tr><td>${l.palabra}</td><td>${l.cantidad}</td><td>${fmtMoneda(l.gasto)}</td></tr>`).join('');
-  }
-  document.getElementById('buscarPalabraClave').oninput = renderPalabrasClave;
 
   function init() {
     cargarConfig();
