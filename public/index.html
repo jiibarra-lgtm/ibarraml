@@ -300,9 +300,104 @@
   .acceso-icon{width:38px; height:38px; border-radius:9px; background:var(--indigo-l); color:var(--indigo); display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px;}
   .acceso-nombre{font-size:13.5px; font-weight:600; margin-bottom:3px;}
   .acceso-desc{font-size:11.5px; color:var(--muted); line-height:1.4;}
+  /* ==================== ANIMACIONES Y ESTÉTICA ==================== */
+
+  /* --- Toasts --- */
+  #toastContainer{position:fixed; bottom:20px; right:20px; z-index:500; display:flex; flex-direction:column; gap:10px; max-width:340px;}
+  @media(max-width:600px){ #toastContainer{left:16px; right:16px; bottom:16px; max-width:none; align-items:stretch;} }
+  .toast{
+    background:var(--card); border:1px solid var(--border); border-left:4px solid var(--indigo);
+    border-radius:12px; padding:13px 16px; box-shadow:0 8px 28px rgba(0,0,0,.16);
+    font-size:13px; display:flex; align-items:flex-start; gap:10px;
+    animation:toastIn .28s cubic-bezier(.16,1,.3,1);
+  }
+  .toast.saliendo{animation:toastOut .22s ease forwards;}
+  .toast.ok{border-left-color:var(--ok);}
+  .toast.error{border-left-color:var(--bad);}
+  .toast.warn{border-left-color:var(--warn);}
+  .toast-icono{font-size:16px; flex-shrink:0; line-height:1.3;}
+  .toast-texto{flex:1; line-height:1.4;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(14px) scale(.96);} to{opacity:1; transform:translateY(0) scale(1);}}
+  @keyframes toastOut{from{opacity:1; transform:translateX(0);} to{opacity:0; transform:translateX(30px);}}
+
+  /* --- Transición de página --- */
+  .pagina{animation:pageFade .28s ease;}
+  @keyframes pageFade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  /* --- Sidebar: indicador activo con barra de color --- */
+  .nav-item{position:relative; transition:background .15s ease, color .15s ease, padding-left .15s ease;}
+  .nav-item.active{padding-left:14px;}
+  .nav-item.active::before{
+    content:''; position:absolute; left:-10px; top:50%; transform:translateY(-50%);
+    width:4px; height:20px; border-radius:0 4px 4px 0; background:var(--indigo);
+    animation:barGrow .2s ease;
+  }
+  @keyframes barGrow{from{height:0;} to{height:20px;}}
+  .nav-item .ic{transition:transform .15s ease;}
+  .nav-item:hover .ic{transform:scale(1.12);}
+
+  /* --- KPIs: número contador --- */
+  .stat{transition:transform .15s ease, box-shadow .15s ease;}
+  .stat:hover{transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.08);}
+  .stat .num{transition:color .2s ease;}
+
+  /* --- Filas y tarjetas: aparición escalonada --- */
+  @keyframes cardIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  .pendiente-card, .historial-card, .recientes-item, .reclamo-item, .acceso-card, .categoria{
+    animation:cardIn .3s ease backwards;
+  }
+  .acceso-card{transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;}
+  .acceso-card:hover{transform:translateY(-3px); box-shadow:0 10px 24px rgba(79,70,229,.12);}
+
+  table.productos tbody tr{transition:background .12s ease;}
+
+  /* --- Botones: micro-interacción --- */
+  .btn, button{transition:transform .1s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;}
+  .btn:active, button:active{transform:scale(.97);}
+  .btn-primary:hover{box-shadow:0 4px 14px rgba(79,70,229,.28);}
+
+  /* --- Checkbox con "pop" al tildar --- */
+  input[type=checkbox]{transition:transform .12s ease;}
+  input[type=checkbox]:active{transform:scale(1.2);}
+
+  /* --- Skeleton loading --- */
+  .skeleton{background:linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%); background-size:200% 100%; animation:skeletonWave 1.4s ease-in-out infinite; border-radius:8px;}
+  @keyframes skeletonWave{0%{background-position:200% 0;} 100%{background-position:-200% 0;}}
+  .skeleton-linea{height:14px; margin-bottom:8px; border-radius:6px;}
+  .skeleton-foto{width:40px; height:40px; border-radius:8px; flex-shrink:0;}
+  .skeleton-card{display:flex; gap:10px; align-items:center; padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; background:var(--card);}
+
+  /* --- Estados vacíos con más vida --- */
+  .empty{animation:cardIn .3s ease;}
+  .empty::before{content:'📭'; display:block; font-size:30px; margin-bottom:8px; opacity:.45;}
+  .empty-icono{font-size:34px; display:block; margin-bottom:8px; opacity:.6;}
+
+  /* --- Check animado de confirmación --- */
+  .check-animado{display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:50%; background:rgba(22,163,74,.12); margin:0 auto 10px;}
+  .check-animado svg{width:28px; height:28px;}
+  .check-animado path{stroke:var(--ok); stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:drawCheck .4s ease forwards .1s;}
+  @keyframes drawCheck{to{stroke-dashoffset:0;}}
+
+  /* --- Escáner: pulso mientras busca --- */
+  #lectorQR{position:relative; transition:box-shadow .3s ease;}
+  #lectorQR.detectando{box-shadow:0 0 0 3px rgba(79,70,229,.35);}
+  @keyframes scanPulse{0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,.4);} 50%{box-shadow:0 0 0 8px rgba(79,70,229,0);}}
+  #lectorQR.escaneando{animation:scanPulse 1.6s ease-in-out infinite;}
+
+  /* --- Modal de escaneo: leve rebote al abrir ya cubierto por slideUp --- */
+
+  /* --- Contador animado de tendencia en tarjetas de reporte --- */
+  .tendencia-arriba{color:var(--bad);}
+  .tendencia-abajo{color:var(--ok);}
+
+  /* --- Loading spinner reutilizable --- */
+  .spinner-mini{display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--indigo); border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
 </style>
 </head>
 <body>
+<div id="toastContainer"></div>
 
 <div id="gate">
   <div class="gate-box">
@@ -957,6 +1052,13 @@
 
   /* ---------- NAV SIDEBAR ---------- */
   const nombresPagina = { inicio:'Inicio', pedidos:'Pedidos', historial:'Historial', escanear:'Escanear', graficos:'Gráficos', productos:'Top productos', palabrasclave:'Palabras clave', pagos:'Método de pago', rubros:'Rubros', conciliacion:'Conciliación', sinfactura:'Facturas pendientes', imprimirfacturas:'Imprimir facturas', solicitarfacturas:'Solicitar facturas', lugares:'Lugares', mensajes:'Mensajes', nuevapublicacion:'Nueva publicación', mispublicaciones:'Mis publicaciones', checklist:'Checklist del negocio', resumen:'Resumen mensual', anual:'Comparativo anual', reclamos:'Devoluciones y reclamos', config:'Configuración' };
+  /* ---------- ESCALONADO VISUAL DE TARJETAS ---------- */
+  function escalonarTarjetas(selector, contenedor = document) {
+    contenedor.querySelectorAll(selector).forEach((el, i) => {
+      el.style.animationDelay = `${Math.min(i * 40, 400)}ms`;
+    });
+  }
+
   function irAPagina(pag) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-pagina="${pag}"]`)?.classList.add('active');
@@ -1147,6 +1249,7 @@
       <div class="stat"><div class="num">${vendedoresDistintos}</div><div class="lbl">Vendedores distintos</div></div>
       <div class="stat"><div class="num">${fmtMoneda(ticketPromedio)}</div><div class="lbl">Ticket promedio</div></div>
     `;
+    animarStatsVisibles('statsInicio');
     renderAlertas(pedidos, 'alertasInicio');
 
     const recientesEl = document.getElementById('recientes');
@@ -1203,6 +1306,7 @@
       <div class="stat"><div class="num">${fmtMoneda(gastoTotal)}</div><div class="lbl">Gasto total</div></div>
       <div class="stat"><div class="num" style="color:var(--bad)">${sinFactura}</div><div class="lbl">Sin factura</div></div>
     `;
+    animarStatsVisibles('stats');
   }
 
   /* ---------- LISTA DE PEDIDOS ---------- */
@@ -1251,6 +1355,7 @@
       body.appendChild(tabla);
       listaEl.appendChild(catDiv);
     }
+    escalonarTarjetas('.categoria', listaEl);
   }
 
   function filaPedido(p) {
@@ -1376,13 +1481,13 @@
         const nombre = `${p.order_id}_${Date.now()}_${archivo.name}`;
         const { error: upErr } = await db.storage.from('facturas').upload(nombre, archivo);
         if (!upErr) facturaUrl = db.storage.from('facturas').getPublicUrl(nombre).data.publicUrl;
-        else alert('Error subiendo factura: ' + upErr.message);
+        else mostrarToast('Error subiendo factura: ' + upErr.message, 'error');
       }
       if (fotoManual) {
         const nombreFoto = `foto_${p.order_id}_${Date.now()}_${fotoManual.name}`;
         const { error: upErrFoto } = await db.storage.from('facturas').upload(nombreFoto, fotoManual);
         if (!upErrFoto) imagenManualUrl = db.storage.from('facturas').getPublicUrl(nombreFoto).data.publicUrl;
-        else alert('Error subiendo la foto: ' + upErrFoto.message);
+        else mostrarToast('Error subiendo la foto: ' + upErrFoto.message, 'error');
       }
       const genericoNuevo = td.querySelector('.c-generico').value || null;
       const precioActual = p.precio_unitario ?? (p.total && p.cantidad_unidades ? p.total / p.cantidad_unidades : null);
@@ -1419,7 +1524,7 @@
           const anterior = historialPrevio[0].precio_unitario;
           const variacionPct = ((precioActual - anterior) / anterior) * 100;
           if (variacionPct > 15) {
-            alert(`⚠ El precio de "${genericoNuevo}" subió ${variacionPct.toFixed(1)}% respecto a la última compra (${fmtExacto(anterior)} → ${fmtExacto(precioActual)}).`);
+            mostrarToast(`⚠ El precio de "${genericoNuevo}" subió ${variacionPct.toFixed(1)}% respecto a la última compra (${fmtExacto(anterior)} → ${fmtExacto(precioActual)}).`, 'warn', 5000);
           }
         }
         await db.from('price_history').insert({ producto_generico: genericoNuevo, order_id: p.order_id, precio_unitario: precioActual });
@@ -1435,7 +1540,7 @@
         `Motivo del reclamo: [completar acá el detalle del problema]\n\n` +
         `Solicito una solución (cambio, reembolso o el envío correspondiente) a la brevedad. Gracias.`;
       navigator.clipboard.writeText(texto).then(() => {
-        alert('Plantilla copiada al portapapeles. Pegala donde la necesites (mensajería de ML, mail, etc.)');
+        mostrarToast('Plantilla copiada al portapapeles 📋', 'ok');
       }).catch(() => {
         prompt('Copiá el texto manualmente:', texto);
       });
@@ -1532,14 +1637,14 @@
     await db.from('config').update({ dias_alerta_factura: dias, monto_alerta: monto }).eq('id', 1);
     CONFIG.dias_alerta_factura = dias; CONFIG.monto_alerta = monto;
     renderizarPedidos(); renderInicio();
-    alert('Configuración guardada');
+    mostrarToast('Configuración guardada', 'ok');
   };
 
   document.getElementById('btnGuardarPlantilla').onclick = async () => {
     const texto = document.getElementById('cfgPlantillaFactura').value;
     await db.from('config').update({ plantilla_factura: texto }).eq('id', 1);
     CONFIG.plantilla_factura = texto;
-    alert('Mensaje guardado');
+    mostrarToast('Mensaje guardado', 'ok');
   };
   document.getElementById('btnRestaurarPlantilla').onclick = () => {
     document.getElementById('cfgPlantillaFactura').value = PLANTILLA_FACTURA_DEFAULT;
@@ -1628,7 +1733,7 @@
     if (!btn) return;
     btn.onclick = async () => {
       const lugarId = document.getElementById('selLugarScan').value;
-      if (!lugarId) { alert('Elegí un lugar primero.'); return; }
+      if (!lugarId) { mostrarToast('Elegí un lugar primero.', 'warn'); return; }
       const destinatario = document.getElementById('inputDestinatarioScan').value || null;
       await db.from('pedidos').update({ lugar_id: Number(lugarId), destinatario_interno: destinatario }).eq('order_id', pedido.order_id);
       pedido.lugar_id = Number(lugarId);
@@ -1647,7 +1752,7 @@
   }
   function cerrarScanModal() {
     document.getElementById('scanModalBackdrop').classList.remove('abierto');
-    if (scannerActivo) scannerActivo.resume();
+    if (scannerActivo) { scannerActivo.resume(); document.getElementById('lectorQR').classList.add('escaneando'); }
   }
   document.getElementById('btnCerrarScanModal').onclick = cerrarScanModal;
   document.getElementById('scanModalBackdrop').onclick = (e) => { if (e.target.id === 'scanModalBackdrop') cerrarScanModal(); };
@@ -1685,7 +1790,7 @@
       ${pedidos.length > 1 ? `<div class="scan-multi-badge">📦 Paquete con ${pedidos.length} productos</div>` : ''}
       ${filasProductos}
       ${todosVerificados
-        ? `<div class="scan-exito">✓ Ya estaba todo marcado como recibido</div>`
+        ? `<div class="scan-exito"><span class="check-animado"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6"/></svg></span><br/>✓ Ya estaba todo marcado como recibido</div>`
         : `<button class="scan-btn-confirmar" id="btnConfirmarRecibido">Marcar ${pedidos.length > 1 ? 'todos como recibidos' : 'como recibido'}</button>`}
       ${bloqueLugarScan(pedidos[0])}
     `;
@@ -1724,8 +1829,11 @@
     ULTIMO_CODIGO_SCAN = idLimpio;
     renderContenidoScanModal(pedidos, idLimpio);
     abrirScanModal();
+    sonidoBeep(pedidos && pedidos.length > 0);
+    if (navigator.vibrate) navigator.vibrate(pedidos && pedidos.length > 0 ? [60] : [40, 60, 40]);
     // pausa la cámara mientras el modal está abierto; se reanuda al cerrar
     if (scannerActivo) scannerActivo.pause(true);
+    document.getElementById('lectorQR').classList.remove('escaneando');
   }
 
   document.getElementById('btnIniciarScan').onclick = async () => {
@@ -1750,6 +1858,7 @@
       );
       document.getElementById('btnIniciarScan').style.display = 'none';
       document.getElementById('btnDetenerScan').style.display = 'inline-block';
+      document.getElementById('lectorQR').classList.add('escaneando');
     } catch (e) {
       document.getElementById('resultadoScan').innerHTML = `<div class="alerta bad">No se pudo acceder a la cámara: ${e.message || e}. Revisá los permisos del navegador, o usá el campo manual de abajo.</div>`;
     }
@@ -2215,6 +2324,7 @@
       };
       cont.appendChild(div);
     }
+    escalonarTarjetas('.pendiente-card', cont);
   }
 
   /* ---------- EXPORTAR HISTORIAL: EXCEL / PDF / IMPRIMIR ---------- */
@@ -2241,7 +2351,7 @@
 
   document.getElementById('btnExportarExcelHist').onclick = () => {
     const filas = filasParaExportar();
-    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
+    if (!filas.length) { mostrarToast('No hay pedidos para exportar con este filtro.', 'warn'); return; }
     const ws = XLSX.utils.json_to_sheet(filas);
     // Ancho de columnas prolijo
     ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: Math.max(k.length + 2, 14) }));
@@ -2260,7 +2370,7 @@
 
   document.getElementById('btnExportarPdfHist').onclick = () => {
     const filas = ULTIMO_HISTORIAL_FILTRADO;
-    if (!filas.length) { alert('No hay pedidos para exportar con este filtro.'); return; }
+    if (!filas.length) { mostrarToast('No hay pedidos para exportar con este filtro.', 'warn'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
 
@@ -2334,6 +2444,7 @@
       div.querySelector('.c-imprimir-una').onclick = () => imprimirYMarcar(p);
       cont.appendChild(div);
     }
+    escalonarTarjetas('.pendiente-card', cont);
   }
 
   async function imprimirYMarcar(p) {
@@ -2405,7 +2516,7 @@
     const total = Number(document.getElementById('manTotal').value);
     const categoria = document.getElementById('manCategoria').value.trim();
 
-    if (!titulo || !fecha || !total) { alert('Completá al menos producto, fecha y total.'); return; }
+    if (!titulo || !fecha || !total) { mostrarToast('Completá al menos producto, fecha y total.', 'warn'); return; }
 
     const idSintetico = Date.now(); // ID único, ya que no viene de Mercado Libre
     const { error } = await db.from('pedidos').insert({
@@ -2422,14 +2533,14 @@
       manual_historico: true,
       verificado_por_mi: true,
     });
-    if (error) { alert('Error al guardar: ' + error.message); return; }
+    if (error) { mostrarToast('Error al guardar: ' + error.message, 'error'); return; }
 
     document.getElementById('manTitulo').value = '';
     document.getElementById('manVendedor').value = '';
     document.getElementById('manFecha').value = '';
     document.getElementById('manTotal').value = '';
     document.getElementById('manCategoria').value = '';
-    alert('Compra histórica agregada.');
+    mostrarToast('Compra histórica agregada ✓', 'ok');
     cargarPedidos();
   };
 
@@ -2464,11 +2575,11 @@
   document.getElementById('buscarSinLugar').oninput = renderLugares;
   document.getElementById('btnAgregarLugar').onclick = async () => {
     const nombre = document.getElementById('lugarNombre').value.trim();
-    if (!nombre) { alert('Ponele un nombre al lugar.'); return; }
+    if (!nombre) { mostrarToast('Ponele un nombre al lugar.', 'warn'); return; }
     const direccion = document.getElementById('lugarDireccion').value.trim() || null;
     const contacto = document.getElementById('lugarContacto').value.trim() || null;
     const { error } = await db.from('lugares').insert({ nombre, direccion, contacto });
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { mostrarToast('Error: ' + error.message, 'error'); return; }
     document.getElementById('lugarNombre').value = '';
     document.getElementById('lugarDireccion').value = '';
     document.getElementById('lugarContacto').value = '';
@@ -2817,7 +2928,7 @@
         });
         const data = await resp.json();
         btn.textContent = resp.ok ? 'Guardado ✓' : 'Error';
-        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
+        if (!resp.ok) mostrarToast('Error: ' + (data.error || 'desconocido'), 'error');
         setTimeout(() => renderMisPublicaciones(), 800);
       };
       div.querySelector('.c-toggle-status').onclick = async (e) => {
@@ -2828,11 +2939,12 @@
           body: JSON.stringify({ item_id: p.item_id, status: nuevoStatus }),
         });
         const data = await resp.json();
-        if (!resp.ok) alert('Error: ' + (data.error || 'desconocido'));
+        if (!resp.ok) mostrarToast('Error: ' + (data.error || 'desconocido'), 'error');
         renderMisPublicaciones();
       };
       cont.appendChild(div);
     }
+    escalonarTarjetas('.pendiente-card', cont);
   }
 
   /* ---------- SOLICITAR FACTURAS ---------- */
@@ -2931,7 +3043,7 @@
     if (btnEnviar) {
       btnEnviar.onclick = async () => {
         const seleccionadas = [...document.querySelectorAll('.c-check-sinchat:checked')].map(c => c.dataset.order);
-        if (!seleccionadas.length) { alert('Seleccioná al menos una.'); return; }
+        if (!seleccionadas.length) { mostrarToast('Seleccioná al menos una.', 'warn'); return; }
         estado.textContent = 'Enviando...';
         let enviados = 0;
         for (const orderId of seleccionadas) {
@@ -3038,6 +3150,68 @@
       listado.slice(0, 60).map(l => `<tr><td>${l.palabra}</td><td>${l.cantidad}</td><td>${fmtMoneda(l.gasto)}</td></tr>`).join('');
   }
   document.getElementById('buscarPalabraClave').oninput = renderPalabrasClave;
+
+  /* ---------- TOASTS ---------- */
+  function mostrarToast(mensaje, tipo = 'ok', duracion = 3200) {
+    const cont = document.getElementById('toastContainer');
+    const iconos = { ok: '✅', error: '❌', warn: '⚠️' };
+    const div = document.createElement('div');
+    div.className = `toast ${tipo}`;
+    div.innerHTML = `<span class="toast-icono">${iconos[tipo] || 'ℹ️'}</span><span class="toast-texto">${mensaje}</span>`;
+    cont.appendChild(div);
+    setTimeout(() => {
+      div.classList.add('saliendo');
+      setTimeout(() => div.remove(), 240);
+    }, duracion);
+  }
+
+  /* ---------- CONTADOR ANIMADO PARA KPIs ---------- */
+  function animarNumero(el, valorFinal, prefijo = '', esDecimal = false) {
+    if (!el) return;
+    const duracion = 700;
+    const inicio = performance.now();
+    const valorInicial = 0;
+    function paso(ahora) {
+      const progreso = Math.min((ahora - inicio) / duracion, 1);
+      const facilitado = 1 - Math.pow(1 - progreso, 3); // ease-out cubic
+      const actual = valorInicial + (valorFinal - valorInicial) * facilitado;
+      el.textContent = prefijo + (esDecimal ? actual.toFixed(1) : Math.round(actual).toLocaleString('es-AR'));
+      if (progreso < 1) requestAnimationFrame(paso);
+      else el.textContent = prefijo + (esDecimal ? valorFinal.toFixed(1) : Math.round(valorFinal).toLocaleString('es-AR'));
+    }
+    requestAnimationFrame(paso);
+  }
+  // Anima automáticamente cualquier .stat .num que tenga un número simple adentro,
+  // después de que se pinte el HTML de las tarjetas.
+  function animarStatsVisibles(contenedorId) {
+    const cont = document.getElementById(contenedorId);
+    if (!cont) return;
+    cont.querySelectorAll('.stat .num').forEach(el => {
+      const texto = el.textContent.trim();
+      const soloNumero = texto.replace(/[^\d.-]/g, '');
+      if (soloNumero && /^-?\d+(\.\d+)?$/.test(soloNumero) && texto.replace(soloNumero,'').length <= 2) {
+        const prefijo = texto.startsWith('$') ? '$' : '';
+        const valor = Number(soloNumero);
+        el.textContent = prefijo + '0';
+        animarNumero(el, valor, prefijo);
+      }
+    });
+  }
+
+  /* ---------- SONIDO Y VIBRACIÓN DE ESCANEO ---------- */
+  function sonidoBeep(exito = true) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = exito ? 880 : 220;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      osc.start(); osc.stop(ctx.currentTime + 0.18);
+    } catch {}
+  }
 
   function init() {
     cargarConfig();
