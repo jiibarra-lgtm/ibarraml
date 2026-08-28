@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pedidos ---{} Ibarra</title>
+<title>Pedidos — Ibarra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -1014,7 +1014,11 @@
     document.body.setAttribute('data-app-visible', '1');
     init();
   }
-  if (tokenValido()) mostrarApp();
+  // Diferimos el arranque con setTimeout(0) para que primero terminen de
+  // ejecutarse TODAS las declaraciones del resto del archivo (evita errores
+  // de "no se puede acceder antes de la inicialización" si el orden de
+  // funciones/variables cambia en futuras ediciones).
+  if (tokenValido()) setTimeout(mostrarApp, 0);
 
   document.getElementById('gateBtn').onclick = async () => {
     const pass = document.getElementById('gatePass').value;
@@ -1026,7 +1030,7 @@
       const data = await resp.json();
       if (!resp.ok) { errEl.textContent = data.error || 'Error'; return; }
       localStorage.setItem(TOKEN_KEY, data.token);
-      mostrarApp();
+      setTimeout(mostrarApp, 0);
     } catch { errEl.textContent = 'Error de red'; }
   };
   document.getElementById('gatePass').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('gateBtn').click(); };
