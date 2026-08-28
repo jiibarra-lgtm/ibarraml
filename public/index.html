@@ -1014,11 +1014,7 @@
     document.body.setAttribute('data-app-visible', '1');
     init();
   }
-  // Diferimos el arranque con setTimeout(0) para que primero terminen de
-  // ejecutarse TODAS las declaraciones del resto del archivo (evita errores
-  // de "no se puede acceder antes de la inicialización" si alguna vez el
-  // orden de funciones/variables cambia en futuras ediciones).
-  if (tokenValido()) setTimeout(mostrarApp, 0);
+  if (tokenValido()) mostrarApp();
 
   document.getElementById('gateBtn').onclick = async () => {
     const pass = document.getElementById('gatePass').value;
