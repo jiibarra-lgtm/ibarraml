@@ -238,8 +238,6 @@ export default async function handler(req, res) {
         fecha_entrega: shipInfo?.status_history?.date_delivered || null,
         entregado_confirmado: shipInfo?.status === 'delivered',
         ultima_sync: new Date().toISOString(),
-        raw_order: order,
-        raw_shipping: shipInfo,
         updated_at: new Date().toISOString(),
       };
       if (descuentoInfo.descuento !== null) payload.descuento_monto = descuentoInfo.descuento;
